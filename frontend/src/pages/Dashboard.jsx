@@ -60,7 +60,7 @@ export default function Dashboard() {
         <div style={{ position: "relative", zIndex: 2, maxWidth: "820px" }}>
           <div className="glass" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "5px 14px", borderRadius: "999px", fontSize: "11px", color: "#93c5fd", marginBottom: "18px" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#60a5fa", display: "inline-block" }} />
-            DeepSeek Coder · Runs Locally · Zero API Cost
+            Groq AI · Cloud-Powered · Fast Inference
           </div>
           <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", fontWeight: 800, lineHeight: 1.05, margin: "0 0 1rem" }}>
             <span className="gradient-text">AI Code</span>

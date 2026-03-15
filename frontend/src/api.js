@@ -44,5 +44,5 @@ export const listPlugins       = () => axios.get(`${BASE}/extras/plugins/list`);
 export const confidenceScore   = (code, ai_text = "") => axios.post(`${BASE}/extras/confidence-score`, { code, ai_text });
 export const incrementalAnalyze = (files, cache = {}) => axios.post(`${BASE}/extras/incremental-analyze`, { files, cache });
 export const learningMode      = (code, level = "beginner") => axios.post(`${BASE}/extras/learning-mode`, { code, level });
-export const benchmarkModels   = (code, task = "review", models = ["deepseek-coder"]) => axios.post(`${BASE}/extras/benchmark`, { code, task, models });
+export const benchmarkModels   = (code, task = "review", models = ["llama-3.1-8b-instant"]) => axios.post(`${BASE}/extras/benchmark`, { code, task, models });
 export const listModels        = () => axios.get(`${BASE}/models`);

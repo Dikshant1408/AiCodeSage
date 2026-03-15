@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const BASE = "http://localhost:8000/api";
+const BASE = `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api`;
 const EXAMPLE = `def find_duplicates(items):
     duplicates = []
     for i in range(len(items)):
