@@ -18,6 +18,7 @@ const S = {
   empty: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: "4rem 0", color: "#4b5563", textAlign: "center" },
   spinner: { width: 48, height: 48, border: "3px solid #1e3a5f", borderTop: "3px solid #3b82f6", borderRadius: "50%", animation: "spin 1s linear infinite", marginBottom: "1rem" },
   error: { padding: "1rem", background: "#450a0a", border: "1px solid #7f1d1d", borderRadius: "12px", color: "#fca5a5", fontSize: "0.875rem" },
+  errorOllama: { padding: "1rem", background: "#1a1100", border: "1px solid #92400e", borderRadius: "12px", color: "#fcd34d", fontSize: "0.875rem" },
 };
 
 // Parse issue lines from AI output for Monaco decorations
@@ -37,6 +38,11 @@ function parseIssueLines(text) {
     }
   }
   return [...new Set(lines)];
+}
+
+// Detect the Ollama "not running" 503 error so we can show a helpful message
+function isOllamaError(errorMsg) {
+  return typeof errorMsg === "string" && errorMsg.toLowerCase().includes("ollama");
 }
 
 export default function CodeAnalysisPage({ title, description, icon, onAnalyze, renderResult, defaultCode }) {
@@ -149,7 +155,25 @@ export default function CodeAnalysisPage({ title, description, icon, onAnalyze, 
                 <AnalysisTimeline />
               </div>
             )}
-            {error && <div style={S.error}><strong>Error:</strong> {error}</div>}
+            {error && (
+              isOllamaError(error)
+                ? (
+                  <div style={S.errorOllama}>
+                    <div style={{ fontWeight: 700, marginBottom: "0.5rem" }}>⚠ Ollama is not running</div>
+                    <p style={{ margin: "0 0 0.5rem" }}>
+                      The local AI model (Ollama) is not reachable. Start it by running:
+                    </p>
+                    <code style={{ display: "block", background: "rgba(0,0,0,0.4)", padding: "6px 10px", borderRadius: 6, fontFamily: "monospace", letterSpacing: "0.03em" }}>
+                      ollama serve
+                    </code>
+                    <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "#92400e" }}>
+                      Then make sure the <strong style={{ color: "#fcd34d" }}>deepseek-coder</strong> model is available:&nbsp;
+                      <code style={{ fontFamily: "monospace" }}>ollama pull deepseek-coder</code>
+                    </p>
+                  </div>
+                )
+                : <div style={S.error}><strong>Error:</strong> {error}</div>
+            )}
             {result && renderResult(result)}
           </div>
         </div>

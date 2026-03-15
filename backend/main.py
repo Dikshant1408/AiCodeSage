@@ -27,6 +27,15 @@ app.include_router(extras.router,    prefix="/api/extras",    tags=["Extras"])
 def root():
     return {"message": "AI Code Assistant API v4.0"}
 
+@app.get("/api/health")
+def health_check():
+    from ai_engine.ollama_client import check_ollama_status
+    ollama = check_ollama_status()
+    return {
+        "api": "ok",
+        "ollama": ollama,
+    }
+
 @app.get("/api/models")
 def list_models():
     from ai_engine.ollama_client import list_available_models
