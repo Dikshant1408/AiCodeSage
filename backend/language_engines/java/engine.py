@@ -2,6 +2,8 @@
 import re
 from language_engines.base import BaseEngine, EngineResult
 
+MAX_FUNCTIONS = 30
+
 
 class JavaEngine(BaseEngine):
     language = "java"
@@ -19,10 +21,10 @@ class JavaEngine(BaseEngine):
             r'(?:public|private|protected|static|final|synchronized)\s+(?:\w+\s+)+(\w+)\s*\([^)]*\)\s*(?:throws\s+\w+\s*)?\{',
             code
         )
-        result.functions = list(dict.fromkeys(result.functions))[:30]
+        result.functions = list(dict.fromkeys(result.functions))[:MAX_FUNCTIONS]
 
-        # Imports
-        result.imports = re.findall(r'import\s+([\w.]+);', code)
+        # Imports — handles regular, static, and wildcard imports
+        result.imports = re.findall(r'import\s+(?:static\s+)?([\w.]+\*?);', code)
 
         # Static checks
         issues = []
@@ -39,7 +41,8 @@ class JavaEngine(BaseEngine):
             if re.search(r'new\s+\w+\s*\(\s*\)\s*;', stripped) and "String" in stripped:
                 issues.append({"line": i, "severity": "info", "message": "Prefer string literals over new String()", "rule": "java:S1858"})
 
-        result.static_issues = issues
+        if issues:
+            result.static_issues = issues
         result.metrics["functions"] = len(result.functions)
         result.metrics["classes"] = len(result.classes)
         result.raw_output = f"Found {len(issues)} static issues"
