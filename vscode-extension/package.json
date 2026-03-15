@@ -1,0 +1,88 @@
+{
+  "name": "ai-code-assistant",
+  "displayName": "AI Code Assistant",
+  "description": "AI-powered code review, bug detection, security scan, and test generation — powered by DeepSeek Coder running locally via Ollama.",
+  "version": "1.0.0",
+  "publisher": "ai-code-assistant",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Linters", "Testing"],
+  "icon": "icon.png",
+  "activationEvents": ["onLanguage:python", "onLanguage:javascript", "onLanguage:typescript"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "aiAssistant.reviewCode",    "title": "AI: Review Code",       "category": "AI Code Assistant" },
+      { "command": "aiAssistant.detectBugs",    "title": "AI: Detect Bugs",       "category": "AI Code Assistant" },
+      { "command": "aiAssistant.explainCode",   "title": "AI: Explain Code",      "category": "AI Code Assistant" },
+      { "command": "aiAssistant.securityScan",  "title": "AI: Security Scan",     "category": "AI Code Assistant" },
+      { "command": "aiAssistant.generateTests", "title": "AI: Generate Tests",    "category": "AI Code Assistant" },
+      { "command": "aiAssistant.generateDocs",  "title": "AI: Generate Docs",     "category": "AI Code Assistant" },
+      { "command": "aiAssistant.autoFix",       "title": "AI: Auto-Fix Issue",    "category": "AI Code Assistant" },
+      { "command": "aiAssistant.debugError",    "title": "AI: Debug Error",       "category": "AI Code Assistant" },
+      { "command": "aiAssistant.openDashboard", "title": "AI: Open Dashboard",    "category": "AI Code Assistant" }
+    ],
+    "menus": {
+      "editor/context": [
+        { "submenu": "aiAssistant.submenu", "group": "aiAssistant" }
+      ],
+      "aiAssistant.submenu": [
+        { "command": "aiAssistant.reviewCode"    },
+        { "command": "aiAssistant.detectBugs"    },
+        { "command": "aiAssistant.explainCode"   },
+        { "command": "aiAssistant.securityScan"  },
+        { "command": "aiAssistant.generateTests" },
+        { "command": "aiAssistant.generateDocs"  },
+        { "command": "aiAssistant.autoFix"       },
+        { "command": "aiAssistant.debugError"    }
+      ]
+    },
+    "submenus": [
+      { "id": "aiAssistant.submenu", "label": "AI Code Assistant" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "aiAssistant", "title": "AI Code Assistant", "icon": "$(robot)" }
+      ]
+    },
+    "views": {
+      "aiAssistant": [
+        { "type": "webview", "id": "aiAssistant.resultsView", "name": "AI Results" }
+      ]
+    },
+    "configuration": {
+      "title": "AI Code Assistant",
+      "properties": {
+        "aiCodeAssistant.backendUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "URL of the AI Code Assistant backend API"
+        },
+        "aiCodeAssistant.language": {
+          "type": "string",
+          "default": "python",
+          "enum": ["python", "javascript", "typescript"],
+          "description": "Default language for analysis"
+        }
+      }
+    },
+    "keybindings": [
+      { "command": "aiAssistant.reviewCode",   "key": "ctrl+shift+r", "when": "editorTextFocus" },
+      { "command": "aiAssistant.detectBugs",   "key": "ctrl+shift+b", "when": "editorTextFocus" },
+      { "command": "aiAssistant.explainCode",  "key": "ctrl+shift+e", "when": "editorTextFocus" },
+      { "command": "aiAssistant.securityScan", "key": "ctrl+shift+s", "when": "editorTextFocus" }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.0"
+  }
+}

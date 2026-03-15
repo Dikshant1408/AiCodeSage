@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Code Assistant</title>
+    <script>
+      window.onerror = function(msg, src, line, col, err) {
+        document.body.innerHTML = '<div style="background:#050810;color:#f87171;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:monospace;padding:2rem;"><h2>JS Error</h2><pre style="color:#9ca3af;max-width:700px;white-space:pre-wrap">' + msg + '\n\n' + src + ':' + line + '</pre></div>';
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        document.body.innerHTML = '<div style="background:#050810;color:#f87171;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:monospace;padding:2rem;"><h2>Unhandled Promise Rejection</h2><pre style="color:#9ca3af;max-width:700px;white-space:pre-wrap">' + (e.reason?.message || e.reason) + '</pre></div>';
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
