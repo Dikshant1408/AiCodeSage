@@ -29,10 +29,7 @@ app.include_router(extras.router,    prefix="/api/extras",    tags=["Extras"])
 
 @app.get("/")
 def root():
-    try:
-        return {"message": "AI Code Assistant API v4.0"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    return {"message": "AI Code Assistant API v4.0"}
 
 @app.get("/api/models")
 def list_models():
@@ -41,6 +38,8 @@ def list_models():
         models = list_available_models()
         if not isinstance(models, list):
             raise HTTPException(status_code=500, detail=f"Invalid models data returned from AI engine: expected list, got {type(models).__name__}.")
+        if not models:
+            raise HTTPException(status_code=404, detail="No models are currently available.")
         return {"models": models}
     except HTTPException:
         raise
