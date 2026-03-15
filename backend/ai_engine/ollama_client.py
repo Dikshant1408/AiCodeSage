@@ -1,7 +1,8 @@
 import requests
 from fastapi import HTTPException
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_URL = f"{OLLAMA_BASE_URL}/api/generate"
 DEFAULT_MODEL = "deepseek-coder"
 
 def ask_ai(prompt: str, model: str = DEFAULT_MODEL) -> str:
@@ -35,12 +36,25 @@ def ask_ai_with_model(prompt: str, model: str) -> str:
     return ask_ai(prompt, model=model)
 
 
-def list_available_models() -> list:
-    """Return list of locally available Ollama models."""
+def check_ollama_status() -> dict:
+    """Check whether Ollama is reachable and return status info."""
     try:
-        resp = requests.get("http://localhost:11434/api/tags", timeout=10)
+        resp = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
         if resp.status_code == 200:
-            return [m["name"] for m in resp.json().get("models", [])]
+            models = [m["name"] for m in resp.json().get("models", [])]
+            return {"running": True, "models": models}
+    except requests.exceptions.ConnectionError:
+        pass
     except Exception:
         pass
-    return []
+    return {
+        "running": False,
+        "models": [],
+        "message": "Ollama is not running. Start it with: ollama serve",
+    }
+
+
+def list_available_models() -> list:
+    """Return list of locally available Ollama models."""
+    status = check_ollama_status()
+    return status.get("models", [])

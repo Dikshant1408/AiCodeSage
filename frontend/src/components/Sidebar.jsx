@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import axios from "axios";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const NAV_GROUPS = [
   {
@@ -49,6 +52,26 @@ const NAV_GROUPS = [
 
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
+  const [ollamaStatus, setOllamaStatus] = useState(null);
+
+  useEffect(() => {
+    const checkStatus = () => {
+      axios
+        .get(`${API_BASE}/api/health`, { timeout: 5000 })
+        .then((res) => setOllamaStatus(res.data.ollama?.running ?? null))
+        .catch(() => setOllamaStatus(false));
+    };
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const statusColor =
+    ollamaStatus === true ? "#34d399" : ollamaStatus === false ? "#ef4444" : "#f59e0b";
+  const statusLabel =
+    ollamaStatus === true ? "AI Online" : ollamaStatus === false ? "Ollama offline" : "Checking…";
+  const statusTitle =
+    ollamaStatus === false ? "Ollama is not running. Start it with: ollama serve" : undefined;
 
   return (
     <aside style={{
@@ -112,9 +135,22 @@ export default function Sidebar({ collapsed, onToggle }) {
       </div>
 
       {/* Status */}
-      <div style={{ padding: collapsed ? "10px 0" : "10px 14px", borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: "6px", justifyContent: collapsed ? "center" : "flex-start", flexShrink: 0 }}>
-        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", flexShrink: 0 }} />
-        {!collapsed && <span style={{ fontSize: "0.68rem", color: "#4b5563" }}>AI Online</span>}
+      <div
+        style={{
+          padding: collapsed ? "10px 0" : "10px 14px",
+          borderTop: "1px solid rgba(255,255,255,0.05)",
+          display: "flex", alignItems: "center", gap: "6px",
+          justifyContent: collapsed ? "center" : "flex-start",
+          flexShrink: 0,
+        }}
+        title={statusTitle}
+      >
+        <div style={{ width: 6, height: 6, borderRadius: "50%", background: statusColor, flexShrink: 0 }} />
+        {!collapsed && (
+          <span style={{ fontSize: "0.68rem", color: ollamaStatus === false ? "#ef4444" : "#4b5563" }}>
+            {statusLabel}
+          </span>
+        )}
       </div>
     </aside>
   );
