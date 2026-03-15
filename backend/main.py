@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from api import review, analyze, explain, docs_gen, security, github, tests_gen, advanced, analytics, polyglot, extras
 
@@ -29,9 +29,20 @@ app.include_router(extras.router,    prefix="/api/extras",    tags=["Extras"])
 
 @app.get("/")
 def root():
-    return {"message": "AI Code Assistant API v4.0"}
+    try:
+        return {"message": "AI Code Assistant API v4.0"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/api/models")
 def list_models():
-    from ai_engine.ollama_client import list_available_models
-    return {"models": list_available_models()}
+    try:
+        from ai_engine.ollama_client import list_available_models
+        models = list_available_models()
+        if not isinstance(models, list):
+            raise HTTPException(status_code=500, detail=f"Invalid models data returned from AI engine: expected list, got {type(models).__name__}.")
+        return {"models": models}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve models: {str(e)}")
