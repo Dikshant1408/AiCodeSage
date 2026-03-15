@@ -2,7 +2,12 @@
 Language detection + engine registry.
 Maps file extensions → analyzer engine.
 """
-from typing import Optional
+from pathlib import Path
+
+
+class EngineCreationError(Exception):
+    """Raised when a language engine cannot be imported or instantiated."""
+
 
 EXTENSION_MAP = {
     "py":   "python",
@@ -23,20 +28,33 @@ EXTENSION_MAP = {
 }
 
 def detect_language(filename: str) -> str:
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    ext = Path(filename).suffix.lstrip(".").lower()
     return EXTENSION_MAP.get(ext, "unknown")
+
+def _import_and_create(module_path: str, class_name: str, language: str, *args):
+    """Import a language engine class and return an instance, raising EngineCreationError on failure."""
+    try:
+        import importlib
+        module = importlib.import_module(module_path)
+    except ImportError as e:
+        raise EngineCreationError(f"Failed to import engine for {language}: {e}") from e
+    try:
+        return getattr(module, class_name)(*args)
+    except Exception as e:
+        raise EngineCreationError(f"Failed to create engine for {language}: {e}") from e
+
 
 def get_engine(language: str):
     """Return the analyzer engine for a language."""
     if language == "python":
-        from language_engines.python.engine import PythonEngine
-        return PythonEngine()
+        return _import_and_create("language_engines.python.engine", "PythonEngine", language)
     elif language in ("javascript", "typescript"):
-        from language_engines.javascript.engine import JavaScriptEngine
-        return JavaScriptEngine(language)
+        return _import_and_create("language_engines.javascript.engine", "JavaScriptEngine", language, language)
     elif language == "java":
-        from language_engines.java.engine import JavaEngine
-        return JavaEngine()
+        return _import_and_create("language_engines.java.engine", "JavaEngine", language)
     else:
-        from language_engines.base import GenericEngine
-        return GenericEngine(language)
+        try:
+            from language_engines.base import GenericEngine
+            return GenericEngine(language)
+        except Exception as e:
+            raise EngineCreationError(f"Failed to create engine for {language}: {e}") from e
