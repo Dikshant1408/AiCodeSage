@@ -1,7 +1,7 @@
 {
   "name": "ai-code-assistant",
   "displayName": "AI Code Assistant",
-  "description": "AI-powered code review, bug detection, security scan, and test generation — powered by DeepSeek Coder running locally via Ollama.",
+  "description": "AI-powered code review, bug detection, security scan, and test generation — powered by Groq AI cloud API.",
   "version": "1.0.0",
   "publisher": "ai-code-assistant",
   "engines": { "vscode": "^1.85.0" },
