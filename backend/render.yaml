@@ -7,4 +7,4 @@ services:
     envVars:
       - key: GROQ_API_KEY
         sync: false
-    rootDir: ai-code-assistant/backend
+    rootDir: backend

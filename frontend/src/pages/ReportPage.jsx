@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const BASE = "http://localhost:8000/api";
+const BASE = `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api`;
 const EXAMPLE = `import os\n\ndef process_user(user_input):\n    query = "SELECT * FROM users WHERE name = '" + user_input + "'"\n    password = "admin123"\n    result = eval(user_input)\n    return result\n\ndef calculate(a, b):\n    return a / b\n`;
 
 export default function ReportPage() {
