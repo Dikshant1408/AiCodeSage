@@ -117,6 +117,23 @@ npm run compile
 
 ---
 
+## Deployment
+
+### Backend → Render
+
+A `render.yaml` is included in `backend/`. Import the repo on [Render](https://render.com), set the **root directory** to `backend/`, and add the `GROQ_API_KEY` environment variable in the Render dashboard.
+
+### Frontend → Vercel
+
+1. Import the repo on [Vercel](https://vercel.com).
+2. Set the **Root Directory** to `frontend/` in the Vercel project settings.
+3. Add the environment variable `VITE_API_URL` pointing to your deployed backend (e.g. `https://your-backend.onrender.com`).
+4. Deploy — Vercel will run `npm run build` and serve the `dist/` output automatically.
+
+> The `frontend/vercel.json` already configures the Vite build and SPA rewrites so all client-side routes work correctly.
+
+---
+
 ## API Reference
 
 ### Core
