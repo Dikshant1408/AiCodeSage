@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE = "http://localhost:8000/api";
+const BASE = `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api`;
 
 // Core
 export const reviewCode    = (code, language = "python") => axios.post(`${BASE}/review/`, { code, language, analyze_functions: true });

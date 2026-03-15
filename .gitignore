@@ -12,6 +12,9 @@ backend/analytics.db
 dist/
 build/
 .env
+.env.local
+backend/.env
+frontend/.env
 
 # Node
 frontend/node_modules/

@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api import review, analyze, explain, docs_gen, security, github, tests_gen, advanced, analytics, polyglot, extras

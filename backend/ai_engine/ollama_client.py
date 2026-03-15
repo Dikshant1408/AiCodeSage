@@ -1,33 +1,32 @@
-import requests
+import os
 from fastapi import HTTPException
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-DEFAULT_MODEL = "deepseek-coder"
+# Groq client (falls back gracefully if not installed)
+try:
+    from groq import Groq
+    _groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
+except ImportError:
+    _groq_client = None
+
+DEFAULT_MODEL = "llama-3.1-8b-instant"
 
 def ask_ai(prompt: str, model: str = DEFAULT_MODEL) -> str:
-    """Send a prompt to the local Ollama model and return the response."""
+    """Send a prompt to Groq and return the response."""
+    if _groq_client is None:
+        raise HTTPException(status_code=503, detail="groq package not installed. Run: pip install groq")
+    api_key = os.environ.get("GROQ_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="GROQ_API_KEY environment variable not set.")
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={"model": model, "prompt": prompt, "stream": False},
-            timeout=120,
+        completion = _groq_client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2048,
+            temperature=0.2,
         )
-        if response.status_code == 404:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Model '{model}' not found. Run: ollama pull {model}"
-            )
-        response.raise_for_status()
-        return response.json().get("response", "")
-    except requests.exceptions.ConnectionError:
-        raise HTTPException(
-            status_code=503,
-            detail="Ollama is not running. Start it with: ollama serve"
-        )
-    except HTTPException:
-        raise
+        return completion.choices[0].message.content or ""
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI engine error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Groq AI error: {str(e)}")
 
 
 def ask_ai_with_model(prompt: str, model: str) -> str:
@@ -36,11 +35,12 @@ def ask_ai_with_model(prompt: str, model: str) -> str:
 
 
 def list_available_models() -> list:
-    """Return list of locally available Ollama models."""
-    try:
-        resp = requests.get("http://localhost:11434/api/tags", timeout=10)
-        if resp.status_code == 200:
-            return [m["name"] for m in resp.json().get("models", [])]
-    except Exception:
-        pass
-    return []
+    """Return list of available Groq models."""
+    return [
+        "llama-3.1-8b-instant",
+        "llama-3.1-70b-versatile",
+        "llama3-8b-8192",
+        "llama3-70b-8192",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it",
+    ]
