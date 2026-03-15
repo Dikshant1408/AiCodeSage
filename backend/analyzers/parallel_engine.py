@@ -1,6 +1,6 @@
 """
 Parallel analysis engine — analyze multiple files concurrently.
-Uses ThreadPoolExecutor (safe for I/O-bound Ollama calls).
+Uses ThreadPoolExecutor (safe for I/O-bound Groq API calls).
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Callable, Any

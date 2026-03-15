@@ -5,7 +5,7 @@ File → Parser → Static Analysis → 1 AI call → Score → Report
 from analyzers.code_parser import parse_code
 from analyzers.static_analyzer import run_pylint, run_bandit, run_flake8
 from analyzers.quality_score import calculate_score, QualityReport
-from ai_engine.ollama_client import ask_ai
+from ai_engine.groq_client import ask_ai
 from ai_engine.prompts import code_review_prompt, bug_detection_prompt, security_prompt
 from dataclasses import dataclass, field
 from typing import List, Dict

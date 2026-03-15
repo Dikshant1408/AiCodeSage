@@ -60,7 +60,7 @@ def index_codebase(session_id: str, files: Dict[str, str]):
 
 def query_codebase(session_id: str, question: str) -> str:
     """Find relevant code chunks and answer the question using AI."""
-    from ai_engine.ollama_client import ask_ai
+    from ai_engine.groq_client import ask_ai
 
     session = _sessions.get(session_id)
     if not session:

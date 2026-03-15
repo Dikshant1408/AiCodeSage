@@ -9,7 +9,7 @@ from typing import List, Dict
 
 from analyzers.code_parser import parse_code
 from analyzers.static_analyzer import run_pylint, run_bandit, run_flake8
-from ai_engine.ollama_client import ask_ai
+from ai_engine.groq_client import ask_ai
 
 
 @dataclass

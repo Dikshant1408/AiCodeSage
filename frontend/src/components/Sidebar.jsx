@@ -52,14 +52,14 @@ const NAV_GROUPS = [
 
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
-  const [ollamaStatus, setOllamaStatus] = useState(null);
+  const [groqStatus, setGroqStatus] = useState(null);
 
   useEffect(() => {
     const checkStatus = () => {
       axios
         .get(`${API_BASE}/api/health`, { timeout: 5000 })
-        .then((res) => setOllamaStatus(res.data.ollama?.running ?? null))
-        .catch(() => setOllamaStatus(false));
+        .then((res) => setGroqStatus(res.data.groq?.running ?? null))
+        .catch(() => setGroqStatus(false));
     };
     checkStatus();
     const interval = setInterval(checkStatus, 30000);
@@ -67,11 +67,11 @@ export default function Sidebar({ collapsed, onToggle }) {
   }, []);
 
   const statusColor =
-    ollamaStatus === true ? "#34d399" : ollamaStatus === false ? "#ef4444" : "#f59e0b";
+    groqStatus === true ? "#34d399" : groqStatus === false ? "#ef4444" : "#f59e0b";
   const statusLabel =
-    ollamaStatus === true ? "AI Online" : ollamaStatus === false ? "Ollama offline" : "Checking…";
+    groqStatus === true ? "AI Online" : groqStatus === false ? "Groq offline" : "Checking…";
   const statusTitle =
-    ollamaStatus === false ? "Ollama is not running. Start it with: ollama serve" : undefined;
+    groqStatus === false ? "GROQ_API_KEY is not set. Add it to your environment variables." : undefined;
 
   return (
     <aside style={{
@@ -147,7 +147,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       >
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: statusColor, flexShrink: 0 }} />
         {!collapsed && (
-          <span style={{ fontSize: "0.68rem", color: ollamaStatus === false ? "#ef4444" : "#4b5563" }}>
+          <span style={{ fontSize: "0.68rem", color: groqStatus === false ? "#ef4444" : "#4b5563" }}>
             {statusLabel}
           </span>
         )}

@@ -7,7 +7,7 @@ from typing import Dict, Optional
 from language_engines.detector import detect_language, get_engine
 from analyzers.parallel_engine import analyze_files_static_parallel
 from analyzers.confidence_scorer import score_code, format_findings
-from ai_engine.ollama_client import ask_ai
+from ai_engine.groq_client import ask_ai
 from ai_engine.prompts import code_review_prompt
 
 router = APIRouter()

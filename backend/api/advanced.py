@@ -20,7 +20,7 @@ from analyzers.control_flow import analyze_control_flow
 from analyzers.duplicate_detector import detect_duplicates
 from analyzers.bug_fix_agent import run_bug_fix_agent
 from analyzers.knowledge_graph import build_knowledge_graph
-from ai_engine.ollama_client import ask_ai
+from ai_engine.groq_client import ask_ai
 from ai_engine.prompts import (
     autofix_prompt, architecture_prompt, technical_debt_prompt,
     complexity_refactor_prompt, debug_prompt, semantic_search_prompt,

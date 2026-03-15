@@ -90,7 +90,7 @@ def cmd_scan(args):
         print(f"  Files Analyzed        : {len(scores)}")
 
 def cmd_bugs(args):
-    from ai_engine.ollama_client import ask_ai
+    from ai_engine.groq_client import ask_ai
     from ai_engine.prompts import bug_detection_prompt
     from analyzers.static_analyzer import run_pylint
     with open(args.file, 'r') as f:
@@ -103,7 +103,7 @@ def cmd_bugs(args):
     print(run_pylint(code)[:500])
 
 def cmd_security(args):
-    from ai_engine.ollama_client import ask_ai
+    from ai_engine.groq_client import ask_ai
     from ai_engine.prompts import security_prompt
     from analyzers.static_analyzer import run_bandit
     with open(args.file, 'r') as f:
@@ -114,7 +114,7 @@ def cmd_security(args):
     print(run_bandit(code)[:500])
 
 def cmd_debug(args):
-    from ai_engine.ollama_client import ask_ai
+    from ai_engine.groq_client import ask_ai
     from ai_engine.prompts import debug_prompt
     _print_header("AI Debugger")
     code = open(args.file).read() if args.file else ""

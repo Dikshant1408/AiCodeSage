@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from analyzers.pipeline import run_pipeline
 from analyzers.code_parser import parse_code
 from ai_engine.rag_chat import index_codebase, query_codebase
-from ai_engine.ollama_client import ask_ai
+from ai_engine.groq_client import ask_ai
 from ai_engine.prompts import bug_detection_prompt
 from analyzers.static_analyzer import run_pylint, run_bandit
 from dataclasses import asdict

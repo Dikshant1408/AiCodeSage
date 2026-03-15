@@ -1,4 +1,4 @@
-from ai_engine.ollama_client import ask_ai
+from ai_engine.groq_client import ask_ai
 from analyzers.code_parser import parse_code
 
 def generate_tests(code: str, language: str = "python") -> str:

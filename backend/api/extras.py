@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from typing import Dict, Optional, List
 from dataclasses import asdict
 
-from ai_engine.ollama_client import ask_ai
+from ai_engine.groq_client import ask_ai
 from ai_engine.prompts import (
     pr_review_prompt, autopilot_prompt, architecture_refactor_prompt,
     learning_mode_prompt, model_benchmark_prompt, semantic_nav_prompt,
@@ -168,12 +168,12 @@ def learning_mode(req: LearningRequest):
 class BenchmarkRequest(BaseModel):
     code: str
     task: str = "review"
-    models: List[str] = ["deepseek-coder"]
+    models: List[str] = ["llama3-8b-8192"]
 
 @router.post("/benchmark")
 def benchmark_models(req: BenchmarkRequest):
     import time
-    from ai_engine.ollama_client import ask_ai_with_model
+    from ai_engine.groq_client import ask_ai_with_model
     results = []
     for model in req.models[:3]:  # cap at 3 models
         start = time.time()

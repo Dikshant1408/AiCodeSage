@@ -29,14 +29,14 @@ def root():
 
 @app.get("/api/health")
 def health_check():
-    from ai_engine.ollama_client import check_ollama_status
-    ollama = check_ollama_status()
+    from ai_engine.groq_client import check_groq_status
+    groq = check_groq_status()
     return {
         "api": "ok",
-        "ollama": ollama,
+        "groq": groq,
     }
 
 @app.get("/api/models")
 def list_models():
-    from ai_engine.ollama_client import list_available_models
+    from ai_engine.groq_client import list_available_models
     return {"models": list_available_models()}

@@ -1,7 +1,7 @@
 # AI Code Assistant
 
 > **MCA Final Year Project** — AI-powered software engineering platform.
-> Combines static analysis, multi-language engines, control flow analysis, autonomous bug-fixing, supply chain security scanning, and a locally-running LLM (DeepSeek Coder via Ollama) into a full-stack developer tool comparable to **SonarQube + GitHub Copilot + Snyk** — with zero API costs.
+> Combines static analysis, multi-language engines, control flow analysis, autonomous bug-fixing, supply chain security scanning, and the **Groq API** (cloud LLM — fast, free tier available) into a full-stack developer tool comparable to **SonarQube + GitHub Copilot + Snyk**.
 
 ---
 
@@ -11,7 +11,7 @@
 |-------|------------|
 | Frontend | React 18, Vite, Recharts, D3.js, Three.js, Monaco Editor |
 | Backend | FastAPI, Python 3.10+, SQLite |
-| AI Engine | Ollama + DeepSeek Coder (local, free) |
+| AI Engine | Groq API (llama3-8b-8192, llama3-70b-8192, mixtral-8x7b-32768) |
 | Static Analysis | pylint, bandit, flake8, Python AST |
 | Vulnerability DB | OSV API (open source, no key needed) |
 | RAG | ChromaDB + sentence-transformers |
@@ -57,7 +57,7 @@
 | Analytics | `/analytics` | Recharts quality score trends, bug density, security history (SQLite) |
 | Dependencies | `/dependencies` | Scan requirements.txt / package.json for CVEs via OSV database |
 | Learning Mode | `/learning` | Beginner / Intermediate / Advanced explanations with exercises |
-| Benchmark | `/benchmark` | Compare multiple Ollama models — response time, quality, length |
+| Benchmark | `/benchmark` | Compare multiple Groq models — response time, quality, length |
 | Performance | `/performance` | Detect O(n²) loops, N+1 queries, expensive recursion + AI analysis |
 | Export Report | `/report` | Full AI analysis report — download as Markdown or PDF |
 
@@ -84,11 +84,11 @@ Right-click any code → **AI Code Assistant** submenu:
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+
-- [Ollama](https://ollama.ai) installed and running
+- [Groq API key](https://console.groq.com) (free tier available)
 
-### 1. Pull the AI model
+### 1. Set your Groq API key
 ```bash
-ollama pull deepseek-coder
+export GROQ_API_KEY=your_groq_api_key_here
 ```
 
 ### 2. Backend
@@ -169,7 +169,7 @@ POST /api/extras/generate-report       — Full report → Markdown + PDF export
 POST /api/analytics/save               — Save analysis snapshot to SQLite
 GET  /api/analytics/history/{repo}     — Get historical quality data
 GET  /api/analytics/repos              — List all tracked repositories
-GET  /api/models                       — List available Ollama models
+GET  /api/models                       — List available Groq models
 ```
 
 ---
@@ -198,7 +198,7 @@ FastAPI Backend  (http://localhost:8000)  v4.0 — 11 routers
          ├── Incremental Scanner  MD5 hash diff → changed files only
          ├── Performance Analyzer O(n²), N+1, recursion detection
          ├── Report Generator     Markdown + PDF export
-         ├── AI Engine            Ollama → DeepSeek Coder (1 call/analysis)
+         ├── AI Engine            Groq API → llama3-8b-8192 (1 call/analysis)
          └── RAG System           ChromaDB + sentence-transformers
 
 VS Code Extension  (TypeScript)
@@ -313,7 +313,7 @@ ai-code-assistant/
 │   │   ├── complexity_plugin.py   Flags functions > 50 lines
 │   │   └── license_checker.py     Checks for license headers
 │   └── ai_engine/
-│       ├── ollama_client.py       Ollama HTTP client + model listing
+│       ├── groq_client.py         Groq API client + model listing
 │       ├── prompts.py             20+ prompt templates
 │       ├── rag_chat.py            ChromaDB RAG
 │       └── test_generator.py

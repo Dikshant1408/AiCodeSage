@@ -6,7 +6,7 @@ const EXAMPLE = `def fibonacci(n):\n    if n <= 1:\n        return n\n    return
 export default function BenchmarkPage() {
   const [code, setCode] = useState(EXAMPLE);
   const [task, setTask] = useState("review");
-  const [models, setModels] = useState(["deepseek-coder"]);
+  const [models, setModels] = useState(["llama3-8b-8192"]);
   const [availableModels, setAvailableModels] = useState([]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function BenchmarkPage() {
         <div className="glass" style={{ width: 56, height: 56, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem" }}>⚖️</div>
         <div>
           <h1 className="gradient-text" style={{ fontSize: "2rem", fontWeight: 800, margin: 0 }}>Model Benchmarking</h1>
-          <p style={{ color: "#9ca3af", fontSize: "0.875rem", margin: "4px 0 0" }}>Compare multiple Ollama models — response time, quality, output length</p>
+          <p style={{ color: "#9ca3af", fontSize: "0.875rem", margin: "4px 0 0" }}>Compare multiple Groq models — response time, quality, output length</p>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export default function BenchmarkPage() {
             ) : (
               <div>
                 <p style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.5rem" }}>No models detected. Enter manually:</p>
-                {["deepseek-coder", "codellama", "mistral"].map(m => (
+                {["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"].map(m => (
                   <label key={m} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "5px 0", cursor: "pointer" }}>
                     <input type="checkbox" checked={models.includes(m)} onChange={() => toggleModel(m)} style={{ accentColor: "#3b82f6" }} />
                     <span style={{ fontSize: "0.78rem", color: "#9ca3af", fontFamily: "monospace" }}>{m}</span>
