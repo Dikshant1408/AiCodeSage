@@ -168,7 +168,7 @@ const TIMELINE_STEPS = [
   "Parsing code structure...",
   "Running static analysis...",
   "Sending to AI model...",
-  "Analyzing with DeepSeek Coder...",
+  "Analyzing with Groq AI...",
   "Generating report...",
 ];
 

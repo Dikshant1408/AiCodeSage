@@ -384,7 +384,7 @@ Generated: {now}
 {chr(10).join(f"- **{f['issue']}** — {f['confidence_label']} confidence ({int(f['confidence']*100)}%)" for f in findings) or "No security findings."}
 
 ## Functions Detected
-{', '.join(parsed.functions) or 'None'}
+{', '.join(f.name for f in parsed.functions) or 'None'}
 
 ## Static Analysis
 ### pylint
