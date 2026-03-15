@@ -45,4 +45,6 @@ export const confidenceScore   = (code, ai_text = "") => axios.post(`${BASE}/ext
 export const incrementalAnalyze = (files, cache = {}) => axios.post(`${BASE}/extras/incremental-analyze`, { files, cache });
 export const learningMode      = (code, level = "beginner") => axios.post(`${BASE}/extras/learning-mode`, { code, level });
 export const benchmarkModels   = (code, task = "review", models = ["deepseek-coder"]) => axios.post(`${BASE}/extras/benchmark`, { code, task, models });
+export const analyzePerformance = (code) => axios.post(`${BASE}/extras/performance`, { code });
+export const generateReport    = (code, repo_name = "project") => axios.post(`${BASE}/extras/generate-report`, { code, repo_name });
 export const listModels        = () => axios.get(`${BASE}/models`);

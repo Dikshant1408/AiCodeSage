@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
-
-const BASE = "http://localhost:8000/api";
+import { analyzePerformance } from "../api";
 const EXAMPLE = `def find_duplicates(items):
     duplicates = []
     for i in range(len(items)):
@@ -36,7 +34,7 @@ export default function PerformancePage() {
   const handleAnalyze = async () => {
     setLoading(true); setError(null); setResult(null);
     try {
-      const res = await axios.post(`${BASE}/extras/performance`, { code });
+      const res = await analyzePerformance(code);
       setResult(res.data);
     } catch (e) { setError(e.response?.data?.detail || e.message); }
     setLoading(false);

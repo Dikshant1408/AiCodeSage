@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
-
-const BASE = "http://localhost:8000/api";
+import { generateReport } from "../api";
 const EXAMPLE = `import os\n\ndef process_user(user_input):\n    query = "SELECT * FROM users WHERE name = '" + user_input + "'"\n    password = "admin123"\n    result = eval(user_input)\n    return result\n\ndef calculate(a, b):\n    return a / b\n`;
 
 export default function ReportPage() {
@@ -14,7 +12,7 @@ export default function ReportPage() {
   const handleGenerate = async () => {
     setLoading(true); setError(null); setReport(null);
     try {
-      const res = await axios.post(`${BASE}/extras/generate-report`, { code, repo_name: repoName });
+      const res = await generateReport(code, repoName);
       setReport(res.data);
     } catch (e) { setError(e.response?.data?.detail || e.message); }
     setLoading(false);
