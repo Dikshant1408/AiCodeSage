@@ -1,51 +1,45 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
+// Only features that ChatGPT/Claude/Copilot/Gemini CANNOT replicate
 const NAV = [
   {
-    label: "Pipeline",
+    label: "Core Engine",
     color: "#6366f1",
     items: [
-      { to: "/",         icon: "⬡",  label: "Dashboard"        },
+      { to: "/",         icon: "⬡",  label: "Dashboard"           },
       { to: "/pipeline", icon: "⚡",  label: "Autonomous Pipeline" },
-      { to: "/security", icon: "⬢",  label: "Security & Taint"  },
-      { to: "/analytics",icon: "📈", label: "Quality History"   },
+      { to: "/security", icon: "⬢",  label: "Taint & Security"    },
+      { to: "/analytics",icon: "📈", label: "Quality History"     },
     ],
   },
   {
-    label: "Analysis",
+    label: "Static Intelligence",
     color: "#3b82f6",
     items: [
-      { to: "/review",          icon: "◈",  label: "Code Review"      },
-      { to: "/bugs",            icon: "◉",  label: "Bug Detection"    },
-      { to: "/bug-fix-agent",   icon: "🤖", label: "Bug-Fix Agent"    },
-      { to: "/control-flow",    icon: "⟳",  label: "Control Flow"     },
-      { to: "/duplicates",      icon: "⧉",  label: "Duplicates"       },
-      { to: "/knowledge-graph", icon: "🕸️", label: "Code Graph"       },
-      { to: "/performance",     icon: "⚡", label: "Performance"      },
-      { to: "/architecture",    icon: "🏗️", label: "Architecture"     },
-      { to: "/dependencies",    icon: "🔒", label: "Dependencies"     },
-      { to: "/polyglot",        icon: "🌐", label: "Multi-Language"   },
+      { to: "/control-flow",    icon: "⟳",  label: "Control Flow"      },
+      { to: "/duplicates",      icon: "⧉",  label: "Duplicate Detector" },
+      { to: "/knowledge-graph", icon: "🕸️", label: "Code Graph"         },
+      { to: "/bug-fix-agent",   icon: "🤖", label: "Bug-Fix Agent"      },
+      { to: "/performance",     icon: "⚡", label: "Performance"        },
+      { to: "/architecture",    icon: "🏗️", label: "Architecture"       },
+      { to: "/polyglot",        icon: "🌐", label: "Multi-Language"     },
     ],
   },
   {
-    label: "Tools",
+    label: "Data & Memory",
     color: "#10b981",
     items: [
-      { to: "/autofix",   icon: "🔧", label: "Auto-Fix"         },
-      { to: "/debt",      icon: "📊", label: "Tech Debt"        },
-      { to: "/github",    icon: "🐙", label: "GitHub Analyzer"  },
-      { to: "/pr-review", icon: "🔀", label: "PR Review"        },
-      { to: "/tests",     icon: "🧪", label: "Test Generator"   },
-      { to: "/docs",      icon: "◆",  label: "Docs Generator"   },
-      { to: "/report",    icon: "📄", label: "Export Report"    },
+      { to: "/dependencies", icon: "🔒", label: "CVE Scanner"      },
+      { to: "/github",       icon: "🐙", label: "Repo RAG Chat"    },
+      { to: "/review",       icon: "◈",  label: "Code Review"      },
+      { to: "/report",       icon: "📄", label: "Export Report"    },
     ],
   },
 ];
 
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
-
   return (
     <aside style={{
       position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 200,
@@ -57,7 +51,6 @@ export default function Sidebar({ collapsed, onToggle }) {
       transition: "width 0.2s ease",
       overflowX: "hidden",
     }}>
-      {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "space-between", padding: collapsed ? "13px 0" : "13px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
         {!collapsed && (
           <Link to="/" style={{ textDecoration: "none" }}>
@@ -69,12 +62,11 @@ export default function Sidebar({ collapsed, onToggle }) {
         </button>
       </div>
 
-      {/* Nav */}
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "6px 0" }}>
         {NAV.map(group => (
           <div key={group.label} style={{ marginBottom: "2px" }}>
             {!collapsed && (
-              <div style={{ padding: "8px 12px 3px", fontSize: "0.58rem", color: group.color, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, opacity: 0.7 }}>
+              <div style={{ padding: "8px 12px 3px", fontSize: "0.58rem", color: group.color, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, opacity: 0.8 }}>
                 {group.label}
               </div>
             )}
@@ -92,11 +84,7 @@ export default function Sidebar({ collapsed, onToggle }) {
                     transition: "background 0.12s",
                   }}>
                     <span style={{ fontSize: "0.9rem", flexShrink: 0 }} title={collapsed ? item.label : ""}>{item.icon}</span>
-                    {!collapsed && (
-                      <span style={{ fontSize: "0.76rem", color: active ? "#e5e7eb" : "#6b7280", whiteSpace: "nowrap" }}>
-                        {item.label}
-                      </span>
-                    )}
+                    {!collapsed && <span style={{ fontSize: "0.76rem", color: active ? "#e5e7eb" : "#6b7280", whiteSpace: "nowrap" }}>{item.label}</span>}
                   </div>
                 </Link>
               );
@@ -105,10 +93,9 @@ export default function Sidebar({ collapsed, onToggle }) {
         ))}
       </div>
 
-      {/* Status */}
       <div style={{ padding: collapsed ? "10px 0" : "10px 12px", borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: "6px", justifyContent: collapsed ? "center" : "flex-start", flexShrink: 0 }}>
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", flexShrink: 0 }} />
-        {!collapsed && <span style={{ fontSize: "0.65rem", color: "#374151" }}>Groq AI · Online</span>}
+        {!collapsed && <span style={{ fontSize: "0.62rem", color: "#374151" }}>Groq · Static Engines · Online</span>}
       </div>
     </aside>
   );

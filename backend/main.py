@@ -4,9 +4,9 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import review, analyze, explain, docs_gen, security, github, tests_gen, advanced, analytics, polyglot, extras, pipeline_api
+from api import review, analyze, security, github, advanced, analytics, polyglot, extras, pipeline_api
 
-app = FastAPI(title="AI Code Assistant", version="4.0.0")
+app = FastAPI(title="AiCodeSage", version="5.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,22 +15,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(review.router,    prefix="/api/review",    tags=["Review"])
-app.include_router(analyze.router,   prefix="/api/analyze",   tags=["Analyze"])
-app.include_router(explain.router,   prefix="/api/explain",   tags=["Explain"])
-app.include_router(docs_gen.router,  prefix="/api/docs",      tags=["Docs"])
-app.include_router(security.router,  prefix="/api/security",  tags=["Security"])
-app.include_router(github.router,    prefix="/api/github",    tags=["GitHub"])
-app.include_router(tests_gen.router, prefix="/api/tests",     tags=["Tests"])
-app.include_router(advanced.router,  prefix="/api/advanced",  tags=["Advanced"])
-app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
-app.include_router(polyglot.router,  prefix="/api/polyglot",  tags=["Polyglot"])
-app.include_router(extras.router,    prefix="/api/extras",    tags=["Extras"])
-app.include_router(pipeline_api.router, prefix="/api/pipeline", tags=["Pipeline"])
+# System-level intelligence — things no AI chat tool can do
+app.include_router(pipeline_api.router, prefix="/api/pipeline",  tags=["Pipeline"])   # 4-agent autonomous loop
+app.include_router(advanced.router,     prefix="/api/advanced",  tags=["Advanced"])   # AST control flow, taint, duplicates, graph
+app.include_router(security.router,     prefix="/api/security",  tags=["Security"])   # bandit + taint tracking
+app.include_router(analytics.router,    prefix="/api/analytics", tags=["Analytics"])  # SQLite quality history
+app.include_router(polyglot.router,     prefix="/api/polyglot",  tags=["Polyglot"])   # multi-language static engines
+app.include_router(extras.router,       prefix="/api/extras",    tags=["Extras"])     # CVE scan, incremental, confidence, plugins
+app.include_router(review.router,       prefix="/api/review",    tags=["Review"])     # static + single AI call pipeline
+app.include_router(analyze.router,      prefix="/api/analyze",   tags=["Analyze"])    # ZIP upload, RAG chat
+app.include_router(github.router,       prefix="/api/github",    tags=["GitHub"])     # repo clone + RAG
 
 @app.get("/")
 def root():
-    return {"message": "AI Code Assistant API v4.0"}
+    return {"message": "AiCodeSage v5.0 — Multi-Agent Code Intelligence Platform"}
 
 @app.get("/api/models")
 def list_models():
