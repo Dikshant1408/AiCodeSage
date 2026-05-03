@@ -23,13 +23,13 @@ import GithubPage       from "./pages/GithubPage";
 import ReviewPage       from "./pages/ReviewPage";
 import ReportPage       from "./pages/ReportPage";
 
-export default function App() {
+export default function App({ user, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
   const sideW = collapsed ? 52 : 216;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex" }}>
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
+      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} user={user} onLogout={onLogout} />
       <main style={{ marginLeft: sideW, flex: 1, minWidth: 0, transition: "margin-left 0.2s ease" }}>
         <Routes>
           <Route path="/"               element={<Dashboard />} />

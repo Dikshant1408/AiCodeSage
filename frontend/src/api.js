@@ -2,6 +2,17 @@ import axios from "axios";
 
 const BASE = `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api`;
 
+// Auth token helper
+const authHeader = () => {
+  const token = localStorage.getItem("acs_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// Auth
+export const authSignup = (name, email, password) => axios.post(`${BASE}/auth/signup`, { name, email, password });
+export const authLogin  = (email, password)       => axios.post(`${BASE}/auth/login`,  { email, password });
+export const authMe     = ()                       => axios.get(`${BASE}/auth/me`, { headers: authHeader() });
+
 // Core
 export const reviewCode    = (code, language = "python") => axios.post(`${BASE}/review/`, { code, language, analyze_functions: true });
 export const detectBugs    = (code) => axios.post(`${BASE}/analyze/bugs`, { code });

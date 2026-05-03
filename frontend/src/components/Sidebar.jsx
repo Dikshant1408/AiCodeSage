@@ -38,7 +38,7 @@ const NAV = [
   },
 ];
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, onToggle, user, onLogout }) {
   const location = useLocation();
   return (
     <aside style={{
@@ -93,9 +93,25 @@ export default function Sidebar({ collapsed, onToggle }) {
         ))}
       </div>
 
-      <div style={{ padding: collapsed ? "10px 0" : "10px 12px", borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: "6px", justifyContent: collapsed ? "center" : "flex-start", flexShrink: 0 }}>
-        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", flexShrink: 0 }} />
-        {!collapsed && <span style={{ fontSize: "0.62rem", color: "#374151" }}>Groq · Static Engines · Online</span>}
+      <div style={{ padding: collapsed ? "10px 0" : "10px 12px", borderTop: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+        {/* User info */}
+        {!collapsed && user && (
+          <div style={{ marginBottom: "8px" }}>
+            <div style={{ fontSize: "0.72rem", color: "#e5e7eb", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.name}</div>
+            <div style={{ fontSize: "0.62rem", color: "#4b5563", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</div>
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", justifyContent: collapsed ? "center" : "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", flexShrink: 0 }} />
+            {!collapsed && <span style={{ fontSize: "0.62rem", color: "#374151" }}>Groq · Online</span>}
+          </div>
+          {!collapsed && (
+            <button onClick={onLogout} title="Sign out" style={{ background: "none", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, color: "#4b5563", cursor: "pointer", fontSize: "0.65rem", padding: "3px 8px" }}>
+              Sign out
+            </button>
+          )}
+        </div>
       </div>
     </aside>
   );

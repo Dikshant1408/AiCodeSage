@@ -1,24 +1,30 @@
 import os
 from fastapi import HTTPException
 
-# Groq client (falls back gracefully if not installed)
-try:
-    from groq import Groq
-    _groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
-except ImportError:
-    _groq_client = None
-
 DEFAULT_MODEL = "llama-3.1-8b-instant"
 
-def ask_ai(prompt: str, model: str = DEFAULT_MODEL) -> str:
-    """Send a prompt to Groq and return the response."""
-    if _groq_client is None:
+# Lazy singleton — created once on first real call, after dotenv is loaded
+_groq_client = None
+
+def _get_client():
+    global _groq_client
+    if _groq_client is not None:
+        return _groq_client
+    try:
+        from groq import Groq
+    except ImportError:
         raise HTTPException(status_code=503, detail="groq package not installed. Run: pip install groq")
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
-        raise HTTPException(status_code=503, detail="GROQ_API_KEY environment variable not set.")
+        raise HTTPException(status_code=503, detail="GROQ_API_KEY not set in .env")
+    _groq_client = Groq(api_key=api_key)
+    return _groq_client
+
+
+def ask_ai(prompt: str, model: str = DEFAULT_MODEL) -> str:
+    client = _get_client()
     try:
-        completion = _groq_client.chat.completions.create(
+        completion = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048,
@@ -30,12 +36,10 @@ def ask_ai(prompt: str, model: str = DEFAULT_MODEL) -> str:
 
 
 def ask_ai_with_model(prompt: str, model: str) -> str:
-    """Same as ask_ai but always uses the specified model (for benchmarking)."""
     return ask_ai(prompt, model=model)
 
 
 def list_available_models() -> list:
-    """Return list of available Groq models."""
     return [
         "llama-3.1-8b-instant",
         "llama-3.1-70b-versatile",
