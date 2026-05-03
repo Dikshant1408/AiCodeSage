@@ -26,6 +26,7 @@ import BenchmarkPage from "./pages/BenchmarkPage";
 import AutopilotPage from "./pages/AutopilotPage";
 import PerformancePage from "./pages/PerformancePage";
 import ReportPage from "./pages/ReportPage";
+import PipelinePage from "./pages/PipelinePage";
 
 export default function App() {
   const [collapsed, setCollapsed] = useState(false);
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/autopilot" element={<AutopilotPage />} />
           <Route path="/performance" element={<PerformancePage />} />
           <Route path="/report" element={<ReportPage />} />
+          <Route path="/pipeline" element={<PipelinePage />} />
         </Routes>
       </main>
     </div>

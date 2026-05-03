@@ -46,3 +46,7 @@ export const incrementalAnalyze = (files, cache = {}) => axios.post(`${BASE}/ext
 export const learningMode      = (code, level = "beginner") => axios.post(`${BASE}/extras/learning-mode`, { code, level });
 export const benchmarkModels   = (code, task = "review", models = ["deepseek-coder"]) => axios.post(`${BASE}/extras/benchmark`, { code, task, models });
 export const listModels        = () => axios.get(`${BASE}/models`);
+
+// Pipeline
+export const runPipeline = (files, max_files = 5, severity_filter = "all") =>
+  axios.post(`${BASE}/pipeline/run`, { files, max_files, severity_filter });

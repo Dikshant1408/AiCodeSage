@@ -60,19 +60,19 @@ export default function Dashboard() {
         <div style={{ position: "relative", zIndex: 2, maxWidth: "820px" }}>
           <div className="glass" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "5px 14px", borderRadius: "999px", fontSize: "11px", color: "#93c5fd", marginBottom: "18px" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#60a5fa", display: "inline-block" }} />
-            DeepSeek Coder · Runs Locally · Zero API Cost
+            Groq AI · 4-Agent Pipeline · Zero Cost
           </div>
           <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", fontWeight: 800, lineHeight: 1.05, margin: "0 0 1rem" }}>
-            <span className="gradient-text">AI Code</span>
+            <span className="gradient-text">AiCodeSage</span>
             <br />
-            <span style={{ color: "white" }}>Assistant</span>
+            <span style={{ color: "white" }}>Autonomous</span>
           </h1>
           <p style={{ fontSize: "1rem", color: "#9ca3af", maxWidth: "460px", marginBottom: "1.75rem" }}>
-            SonarQube + GitHub Copilot + Snyk — in one tool, running locally for free.
+            Multi-agent pipeline: analyze → patch → verify → report. Not a chatbot — a code improvement engine.
           </p>
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <Link to="/review"><button style={{ padding: "11px 26px", background: "#2563eb", border: "none", borderRadius: "12px", color: "white", fontWeight: 600, cursor: "pointer" }}>Start Reviewing →</button></Link>
-            <button onClick={() => document.getElementById("upload-section").scrollIntoView({ behavior: "smooth" })} className="glass" style={{ padding: "11px 26px", border: "none", borderRadius: "12px", color: "#d1d5db", fontWeight: 600, cursor: "pointer" }}>Upload Project</button>
+            <Link to="/pipeline"><button style={{ padding: "11px 26px", background: "linear-gradient(135deg,#2563eb,#7c3aed)", border: "none", borderRadius: "12px", color: "white", fontWeight: 600, cursor: "pointer" }}>⚡ Run Pipeline →</button></Link>
+            <Link to="/security"><button className="glass" style={{ padding: "11px 26px", border: "none", borderRadius: "12px", color: "#d1d5db", fontWeight: 600, cursor: "pointer" }}>⬢ Security Scan</button></Link>
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import review, analyze, explain, docs_gen, security, github, tests_gen, advanced, analytics, polyglot, extras
+from api import review, analyze, explain, docs_gen, security, github, tests_gen, advanced, analytics, polyglot, extras, pipeline_api
 
 app = FastAPI(title="AI Code Assistant", version="4.0.0")
 
@@ -26,6 +26,7 @@ app.include_router(advanced.router,  prefix="/api/advanced",  tags=["Advanced"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 app.include_router(polyglot.router,  prefix="/api/polyglot",  tags=["Polyglot"])
 app.include_router(extras.router,    prefix="/api/extras",    tags=["Extras"])
+app.include_router(pipeline_api.router, prefix="/api/pipeline", tags=["Pipeline"])
 
 @app.get("/")
 def root():
