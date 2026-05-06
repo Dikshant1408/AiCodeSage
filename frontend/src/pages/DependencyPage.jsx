@@ -91,7 +91,7 @@ export default function DependencyPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
                     <div>
                       <span style={{ fontFamily: "monospace", fontSize: "0.9rem", color: "#e5e7eb", fontWeight: 600 }}>{v.package}</span>
-                      <span style={{ color: "#6b7280", fontSize: "0.8rem", marginLeft: "0.5rem" }}>v{v.version}</span>
+                      <span style={{ color: "#6b7280", fontSize: "0.8rem", marginLeft: "0.5rem" }}>{v.version && v.version !== "unpinned" ? `v${v.version}` : v.version === "unpinned" ? "(no version pinned)" : ""}</span>
                     </div>
                     <span style={{ padding: "2px 10px", borderRadius: 999, background: `${SEV_COLOR[v.severity]}22`, color: SEV_COLOR[v.severity], fontSize: "0.7rem", fontWeight: 600 }}>{v.severity}</span>
                   </div>

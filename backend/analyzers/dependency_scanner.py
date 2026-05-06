@@ -97,18 +97,27 @@ def check_osv(packages: List[Dict[str, str]], ecosystem: str) -> List[Vulnerabil
         for i, result in enumerate(data.get("results", [])):
             pkg = packages[i]
             for vuln in result.get("vulns", []):
+                # Severity from CVSS
                 severity = "MEDIUM"
                 for sev in vuln.get("severity", []):
-                    if sev.get("type") == "CVSS_V3":
-                        score = float(sev.get("score", "0").split("/")[0] if "/" in sev.get("score", "") else sev.get("score", 0))
-                        if score >= 9.0:
-                            severity = "CRITICAL"
-                        elif score >= 7.0:
-                            severity = "HIGH"
-                        elif score >= 4.0:
-                            severity = "MEDIUM"
-                        else:
-                            severity = "LOW"
+                    raw_score = sev.get("score", "")
+                    try:
+                        # CVSS v3 score can be "5.3" or a full vector string
+                        score_str = raw_score.split("/")[0] if "/" in raw_score else raw_score
+                        score = float(score_str)
+                        if score >= 9.0:   severity = "CRITICAL"
+                        elif score >= 7.0: severity = "HIGH"
+                        elif score >= 4.0: severity = "MEDIUM"
+                        else:              severity = "LOW"
+                    except (ValueError, TypeError):
+                        pass
+
+                # Description — try summary first, then details
+                description = (
+                    vuln.get("summary") or
+                    vuln.get("details", "")[:200] or
+                    "No description available"
+                ).strip()
 
                 # Find fixed version
                 fixed = ""
@@ -118,13 +127,15 @@ def check_osv(packages: List[Dict[str, str]], ecosystem: str) -> List[Vulnerabil
                             if "fixed" in event:
                                 fixed = event["fixed"]
                                 break
+                    if fixed:
+                        break
 
                 vulns.append(Vulnerability(
                     package=pkg["name"],
-                    version=pkg["version"],
+                    version=pkg["version"] or "unpinned",
                     vuln_id=vuln.get("id", ""),
                     severity=severity,
-                    summary=vuln.get("summary", "No description")[:200],
+                    summary=description,
                     fixed_version=fixed,
                 ))
     except Exception as e:
