@@ -38,14 +38,13 @@ def parse_requirements_txt(content: str) -> List[Dict[str, str]]:
     packages = []
     for line in content.splitlines():
         line = line.strip()
-        if not line or line.startswith("#"):
+        if not line or line.startswith("#") or line.startswith("-"):
             continue
-        # Handle: package==1.0.0, package>=1.0.0, package~=1.0.0
-        m = re.match(r'^([A-Za-z0-9_\-\.]+)\s*[=~><]+\s*([^\s;#]+)', line)
+        # Handle extras: package[extra]==1.0.0 → name=package, version=1.0.0
+        m = re.match(r'^([A-Za-z0-9_\-\.]+)(?:\[[^\]]*\])?\s*[=~><]+\s*([^\s;#,]+)', line)
         if m:
             packages.append({"name": m.group(1), "version": m.group(2)})
         else:
-            # No version pinned
             name = re.match(r'^([A-Za-z0-9_\-\.]+)', line)
             if name:
                 packages.append({"name": name.group(1), "version": ""})
