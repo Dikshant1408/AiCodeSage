@@ -207,6 +207,7 @@ export default function RepoIntelligencePage() {
 }
 
 function OverviewSection({ r }) {
+  const langColors = { python:"#3b82f6", javascript:"#f59e0b", typescript:"#6366f1", java:"#ef4444", css:"#10b981", html:"#f97316", sql:"#8b5cf6", other:"#6b7280" };
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }}>
@@ -218,9 +219,25 @@ function OverviewSection({ r }) {
         ))}
       </div>
 
+      {/* Language breakdown */}
+      {r.lang_breakdown && Object.keys(r.lang_breakdown).length > 0 && (
+        <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "0.875rem", marginBottom: "1.25rem" }}>
+          <div style={{ fontSize: "0.62rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem" }}>Languages Detected</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            {Object.entries(r.lang_breakdown).map(([lang, count]) => (
+              <div key={lang} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "3px 10px", borderRadius: 6, background: `${langColors[lang] || "#6b7280"}18`, border: `1px solid ${langColors[lang] || "#6b7280"}33` }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: langColors[lang] || "#6b7280" }} />
+                <span style={{ fontSize: "0.72rem", color: "#9ca3af", textTransform: "capitalize" }}>{lang}</span>
+                <span style={{ fontSize: "0.68rem", color: "#6b7280" }}>{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {r.riskiest_files?.length > 0 && (
         <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 12, padding: "1rem", marginBottom: "1.25rem" }}>
-          <div style={{ fontSize: "0.65rem", color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem" }}>⚠ Riskiest Files (combined score)</div>
+          <div style={{ fontSize: "0.65rem", color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem" }}>⚠ Riskiest Files</div>
           {r.riskiest_files.map((f, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem" }}>
               <span style={{ fontSize: "0.72rem", color: "#ef4444", fontWeight: 700, minWidth: 16 }}>{i + 1}.</span>
@@ -232,12 +249,22 @@ function OverviewSection({ r }) {
 
       <div style={{ fontSize: "0.65rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem" }}>Per-File Quality Scores</div>
       {r.file_scores?.map((fs, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.875rem", padding: "0.5rem 0.875rem", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, marginBottom: "0.3rem" }}>
-          <span style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "#93c5fd", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fs.file}</span>
-          <span style={{ fontSize: "0.65rem", color: "#6b7280" }}>B:<span style={{ color: "#ef4444" }}>{fs.bugs}</span></span>
-          <span style={{ fontSize: "0.65rem", color: "#6b7280" }}>S:<span style={{ color: "#f59e0b" }}>{fs.security}</span></span>
-          <span style={{ fontWeight: 700, fontSize: "0.8rem", color: sc(fs.score) }}>{fs.score}/10</span>
-          <span style={{ fontSize: "0.68rem", color: "#6b7280", background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 4 }}>{fs.grade}</span>
+        <div key={i} style={{ padding: "0.5rem 0.875rem", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, marginBottom: "0.3rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
+            <span style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "#93c5fd", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fs.file}</span>
+            <span style={{ fontSize: "0.6rem", padding: "1px 6px", borderRadius: 4, background: `${langColors[fs.lang] || "#6b7280"}18`, color: langColors[fs.lang] || "#6b7280" }}>{fs.lang}</span>
+            <span style={{ fontSize: "0.65rem", color: "#6b7280" }}>B:<span style={{ color: "#ef4444" }}>{fs.bugs}</span></span>
+            <span style={{ fontSize: "0.65rem", color: "#6b7280" }}>S:<span style={{ color: "#f59e0b" }}>{fs.security}</span></span>
+            <span style={{ fontWeight: 700, fontSize: "0.8rem", color: sc(fs.score) }}>{fs.score}/10</span>
+            <span style={{ fontSize: "0.68rem", color: "#6b7280", background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 4 }}>{fs.grade}</span>
+          </div>
+          {fs.issues?.length > 0 && (
+            <div style={{ marginTop: "0.3rem", display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
+              {fs.issues.map((issue, j) => (
+                <span key={j} style={{ fontSize: "0.62rem", color: "#6b7280", background: "rgba(255,255,255,0.03)", padding: "1px 6px", borderRadius: 4 }}>{issue}</span>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>

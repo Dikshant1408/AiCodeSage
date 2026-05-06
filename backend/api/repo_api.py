@@ -16,8 +16,11 @@ from analyzers.github_analyzer import clone_and_scan
 
 router = APIRouter()
 
-SUPPORTED = (".py", ".js", ".ts", ".jsx", ".tsx", ".java")
-MAX_FILES = 50
+SUPPORTED = (".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".css", ".scss", ".html", ".sql")
+MAX_FILES = 60
+
+SKIP_DIRS = ("node_modules", "venv", ".venv", "dist", "build", ".git",
+             "__pycache__", ".next", "coverage", "vendor", "target")
 
 
 # ── ZIP upload ────────────────────────────────────────────────────────────────
@@ -32,9 +35,13 @@ async def analyze_zip(file: UploadFile = File(...)):
 
     files = {}
     for name in zf.namelist():
-        if name.endswith(SUPPORTED) and "__MACOSX" not in name and not name.endswith("/"):
+        # Skip heavy/irrelevant directories
+        parts = name.replace("\\", "/").split("/")
+        if any(skip in parts for skip in SKIP_DIRS):
+            continue
+        if name.endswith(SUPPORTED) and not name.endswith("/"):
             code = zf.read(name).decode("utf-8", errors="ignore").strip()
-            if code:
+            if code and len(code) > 20:  # skip empty/tiny files
                 files[name] = code
     zf.close()
 

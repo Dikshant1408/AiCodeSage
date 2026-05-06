@@ -1,16 +1,7 @@
 """
 Repository-Level Intelligence Engine
 =====================================
-Analyzes an ENTIRE repository in one pass. Things AI cannot do:
-
-1. Complexity hotspot ranking  — cyclomatic complexity across every function in every file
-2. Cross-file duplicate clusters — Jaccard similarity across all function pairs
-3. Dependency risk map — which files are most imported (high coupling = high risk)
-4. Architecture layer detection — separates controllers/models/utils/tests automatically
-5. Dead code detection — functions defined but never called anywhere in the repo
-6. Cross-file taint paths — user input flowing across file boundaries to dangerous sinks
-
-All static. All instant. No AI needed.
+Supports: Python, JavaScript, TypeScript, JSX, TSX, Java, CSS, HTML, SQL
 """
 import ast, re, hashlib
 from dataclasses import dataclass, field
@@ -19,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from analyzers.static_analyzer import run_all_parallel
 from analyzers.quality_score import calculate_score
-from analyzers.cross_file_taint import analyze_cross_file_taint, CrossFileTaintPath
+from analyzers.cross_file_taint import analyze_cross_file_taint
 
 
 # ── Data models ───────────────────────────────────────────────────────────────
@@ -90,6 +81,7 @@ class RepoIntelligenceReport:
 
     # Hotspot summary
     riskiest_files: List[str] = field(default_factory=list)
+    lang_breakdown: Dict = field(default_factory=dict)
 
 
 # ── Complexity analysis ───────────────────────────────────────────────────────
@@ -386,55 +378,152 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
 
     # ── Parallel: static analysis per file ───────────────────────────────────
     def score_file(filename, code):
+        from analyzers.quality_score import QualityReport
+        import re as _re
+
         try:
-            from analyzers.code_parser import parse_code
-            ext = filename.rsplit(".", 1)[-1]
-            parsed = parse_code(code, ext)
-            # Static analysis only for Python
+            # ── Python: full pylint + bandit + flake8 ──
             if filename.endswith(".py"):
+                from analyzers.code_parser import parse_code
                 static = run_all_parallel(code)
+                parsed = parse_code(code, "python")
                 q = calculate_score(
                     static["pylint"], static["bandit"], static["flake8"],
                     function_count=len(parsed.functions),
                     line_count=len(code.splitlines()),
                 )
-            else:
-                # JS/TS — score based on basic metrics only
-                from analyzers.quality_score import QualityReport
-                fn_count = len(parsed.functions)
+                return filename, q, len(parsed.functions), "python"
+
+            # ── JS / TS / JSX / TSX ──
+            elif filename.endswith((".js", ".jsx", ".ts", ".tsx")):
                 loc = len(code.splitlines())
-                # Rough heuristics for JS
-                import re as _re
-                console_logs = len(_re.findall(r'console\.log', code))
-                todos = len(_re.findall(r'TODO|FIXME|HACK', code))
-                smells = console_logs + todos
-                score = round(max(0, min(10, 8 - smells * 0.3)), 1)
-                grade = "A" if score >= 8 else "B" if score >= 7 else "C" if score >= 6 else "D" if score >= 5 else "F"
+                console_logs  = len(_re.findall(r'\bconsole\.(log|warn|error)\b', code))
+                todos         = len(_re.findall(r'\b(TODO|FIXME|HACK|XXX)\b', code))
+                any_type      = len(_re.findall(r':\s*any\b', code))          # TS bad practice
+                eval_use      = len(_re.findall(r'\beval\s*\(', code))
+                hardcoded_key = len(_re.findall(r'(?:password|secret|api_?key)\s*=\s*["\'][^"\']{4,}', code, _re.I))
+                no_error_hdl  = len(_re.findall(r'\.catch\s*\(\s*\)', code))  # empty catch
+                fn_pattern    = _re.compile(
+                    r'(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+(\w+)'
+                    r'|(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\('
+                )
+                fn_count = len(fn_pattern.findall(code))
+                smells   = console_logs + todos + any_type + no_error_hdl
+                bugs     = eval_use + hardcoded_key
+                sec      = eval_use * 2 + hardcoded_key * 3
+                score    = round(max(0.0, min(10.0, 10 - bugs * 1.5 - sec * 0.5 - smells * 0.2)), 1)
+                grade    = "A+" if score >= 9 else "A" if score >= 8 else "B" if score >= 7 else "C" if score >= 6 else "D" if score >= 5 else "F"
+                issues   = []
+                if console_logs:  issues.append(f"{console_logs} console.log statements")
+                if todos:         issues.append(f"{todos} TODO/FIXME comments")
+                if any_type:      issues.append(f"{any_type} TypeScript 'any' types")
+                if eval_use:      issues.append(f"{eval_use} eval() calls (security risk)")
+                if hardcoded_key: issues.append(f"{hardcoded_key} hardcoded secrets")
+                if no_error_hdl:  issues.append(f"{no_error_hdl} empty .catch() handlers")
+                q = QualityReport(score=score, grade=grade, bugs=bugs,
+                                  security_issues=sec, code_smells=smells,
+                                  complexity="N/A", issues=issues)
+                return filename, q, fn_count, "javascript"
+
+            # ── Java ──
+            elif filename.endswith(".java"):
+                loc = len(code.splitlines())
+                system_out    = len(_re.findall(r'System\.out\.print', code))
+                todos         = len(_re.findall(r'\b(TODO|FIXME|HACK)\b', code))
+                catch_empty   = len(_re.findall(r'catch\s*\([^)]+\)\s*\{\s*\}', code))
+                hardcoded_key = len(_re.findall(r'(?:password|secret)\s*=\s*"[^"]{4,}"', code, _re.I))
+                fn_count      = len(_re.findall(r'(?:public|private|protected)\s+\w+\s+\w+\s*\(', code))
+                smells        = system_out + todos + catch_empty
+                bugs          = catch_empty
+                sec           = hardcoded_key * 3
+                score         = round(max(0.0, min(10.0, 10 - bugs * 1.5 - sec * 0.5 - smells * 0.2)), 1)
+                grade         = "A+" if score >= 9 else "A" if score >= 8 else "B" if score >= 7 else "C" if score >= 6 else "D" if score >= 5 else "F"
+                issues        = []
+                if system_out:    issues.append(f"{system_out} System.out.print calls")
+                if catch_empty:   issues.append(f"{catch_empty} empty catch blocks")
+                if hardcoded_key: issues.append(f"{hardcoded_key} hardcoded secrets")
+                q = QualityReport(score=score, grade=grade, bugs=bugs,
+                                  security_issues=sec, code_smells=smells,
+                                  complexity="N/A", issues=issues)
+                return filename, q, fn_count, "java"
+
+            # ── CSS / SCSS ──
+            elif filename.endswith((".css", ".scss", ".sass")):
+                important_count = len(_re.findall(r'!important', code))
+                inline_style    = len(_re.findall(r'style\s*=', code))
+                smells          = important_count + inline_style
+                score           = round(max(0.0, min(10.0, 9 - smells * 0.3)), 1)
+                grade           = "A" if score >= 8 else "B" if score >= 7 else "C"
+                issues          = []
+                if important_count: issues.append(f"{important_count} !important overrides")
                 q = QualityReport(score=score, grade=grade, bugs=0,
-                                  security_issues=0, code_smells=smells, complexity="N/A")
-            return filename, q, len(parsed.functions)
+                                  security_issues=0, code_smells=smells,
+                                  complexity="N/A", issues=issues)
+                return filename, q, 0, "css"
+
+            # ── HTML ──
+            elif filename.endswith((".html", ".htm")):
+                inline_js    = len(_re.findall(r'<script[^>]*>(?!.*src)', code))
+                inline_style = len(_re.findall(r'style\s*=\s*"', code))
+                no_alt       = len(_re.findall(r'<img(?![^>]*alt=)', code))
+                smells       = inline_js + inline_style + no_alt
+                score        = round(max(0.0, min(10.0, 9 - smells * 0.2)), 1)
+                grade        = "A" if score >= 8 else "B" if score >= 7 else "C"
+                issues       = []
+                if inline_js:    issues.append(f"{inline_js} inline script blocks")
+                if no_alt:       issues.append(f"{no_alt} images missing alt attribute")
+                q = QualityReport(score=score, grade=grade, bugs=0,
+                                  security_issues=0, code_smells=smells,
+                                  complexity="N/A", issues=issues)
+                return filename, q, 0, "html"
+
+            # ── SQL ──
+            elif filename.endswith(".sql"):
+                select_star  = len(_re.findall(r'SELECT\s+\*', code, _re.I))
+                no_where     = len(_re.findall(r'DELETE\s+FROM\s+\w+\s*;', code, _re.I))
+                smells       = select_star + no_where
+                score        = round(max(0.0, min(10.0, 9 - smells * 0.5)), 1)
+                grade        = "A" if score >= 8 else "B" if score >= 7 else "C"
+                issues       = []
+                if select_star: issues.append(f"{select_star} SELECT * queries")
+                if no_where:    issues.append(f"{no_where} DELETE without WHERE")
+                q = QualityReport(score=score, grade=grade, bugs=no_where,
+                                  security_issues=0, code_smells=smells,
+                                  complexity="N/A", issues=issues)
+                return filename, q, 0, "sql"
+
+            else:
+                q = QualityReport(score=7.0, grade="B", bugs=0,
+                                  security_issues=0, code_smells=0, complexity="N/A")
+                return filename, q, 0, "other"
+
         except Exception:
-            from analyzers.quality_score import QualityReport
-            return filename, QualityReport(score=5.0, grade="C", bugs=0,
-                                           security_issues=0, code_smells=0,
-                                           complexity="N/A"), 0
+            q = QualityReport(score=5.0, grade="C", bugs=0,
+                              security_issues=0, code_smells=0, complexity="N/A")
+            return filename, q, 0, "unknown"
 
     file_scores = []
     total_funcs = 0
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        futures = {ex.submit(score_file, fn, code): fn for fn, code in py_files.items()}
+    lang_breakdown: Dict[str, int] = {}
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futures = {ex.submit(score_file, fn, code): fn for fn, code in files.items()}
         for fut in as_completed(futures):
-            fn, q, nfuncs = fut.result()
+            fn, q, nfuncs, lang = fut.result()
             file_scores.append({"file": fn, "score": q.score, "grade": q.grade,
                                  "bugs": q.bugs, "security": q.security_issues,
-                                 "smells": q.code_smells})
+                                 "smells": q.code_smells, "lang": lang,
+                                 "issues": q.issues})
             total_funcs += nfuncs
+            lang_breakdown[lang] = lang_breakdown.get(lang, 0) + 1
 
     report.total_functions = total_funcs
     report.file_scores = sorted(file_scores, key=lambda x: x["score"])
+    report.lang_breakdown = lang_breakdown
     if file_scores:
         report.avg_quality_score = round(sum(f["score"] for f in file_scores) / len(file_scores), 1)
-        report.avg_grade = report.file_scores[len(file_scores)//2]["grade"]
+        mid = file_scores[len(file_scores)//2]
+        report.avg_grade = mid["grade"]
 
     # ── Complexity hotspots ───────────────────────────────────────────────────
     all_complexity = []
