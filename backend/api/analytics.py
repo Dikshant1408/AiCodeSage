@@ -45,15 +45,21 @@ def save_analysis_endpoint(req: SaveAnalysisRequest):
 
 @router.get("/history/{repo_name}")
 def get_history_endpoint(repo_name: str, limit: int = 30):
-    repo_id = make_repo_id(repo_name)
-    history = get_history(repo_id, limit)
+    # Try both hashed and raw repo_id to handle both save paths
+    repo_id_hashed = make_repo_id(repo_name)
+    history = get_history(repo_id_hashed, limit)
+    if not history:
+        # Fall back to raw name (saved by repo_api.py)
+        history = get_history(repo_name, limit)
     return {
         "repo_name": repo_name,
-        "repo_id": repo_id,
+        "repo_id": repo_id_hashed,
         "history": [asdict(h) for h in history],
     }
 
 
 @router.get("/repos")
 def list_repos():
-    return {"repos": get_all_repos()}
+    # Return all distinct repo_ids (may be raw names or hashes)
+    all_ids = get_all_repos()
+    return {"repos": all_ids}

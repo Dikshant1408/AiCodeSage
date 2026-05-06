@@ -10,7 +10,15 @@ export default function AnalyticsPage() {
   const [saveForm, setSaveForm] = useState({ quality_score: 7.5, bug_count: 2, security_count: 1, code_smells: 3, grade: "B", files_analyzed: 5, line_count: 300 });
 
   useEffect(() => {
-    listRepos().then(r => setRepos(r.data.repos || [])).catch(() => {});
+    listRepos().then(r => {
+      const repos = r.data.repos || [];
+      setRepos(repos);
+      // Auto-load the most recent repo
+      if (repos.length > 0) {
+        setRepoName(repos[0]);
+        getHistory(repos[0]).then(res => setHistory(res.data.history || [])).catch(() => {});
+      }
+    }).catch(() => {});
   }, []);
 
   const loadHistory = async () => {
@@ -49,7 +57,7 @@ export default function AnalyticsPage() {
             {repos.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginBottom: "0.5rem" }}>
                 {repos.slice(0, 6).map(r => (
-                  <button key={r} onClick={() => setRepoName(r)} style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#9ca3af", fontSize: "0.7rem", cursor: "pointer" }}>{r.slice(0, 12)}</button>
+                  <button key={r} onClick={() => { setRepoName(r); getHistory(r).then(res => setHistory(res.data.history || [])).catch(() => {}); }} style={{ padding: "2px 8px", borderRadius: 6, background: r === repoName ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.05)", border: `1px solid ${r === repoName ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.1)"}`, color: r === repoName ? "#a5b4fc" : "#9ca3af", fontSize: "0.7rem", cursor: "pointer" }}>{r.slice(0, 14)}</button>
                 ))}
               </div>
             )}
