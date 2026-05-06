@@ -1,27 +1,137 @@
 """
 Repository Intelligence API
-============================
-POST /api/repo/analyze-zip   — upload ZIP, get full repo intelligence report
-POST /api/repo/analyze-github — GitHub URL, get full repo intelligence report
-GET  /api/repo/recurring/{repo_name} — recurring issues across analysis history
 """
-import io, zipfile, uuid, time
+import io, zipfile, time, re
 from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
 from dataclasses import asdict
 
 from analyzers.repo_intelligence import analyze_repository
-from analyzers.analytics_db import save_analysis, get_history, init_db
+from analyzers.analytics_db import save_analysis, init_db
 from analyzers.github_analyzer import clone_and_scan
+from ai_engine.ollama_client import ask_ai
 
 router = APIRouter()
 
 SUPPORTED = (".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".css", ".scss", ".html", ".sql")
 MAX_FILES = 60
-
 SKIP_DIRS = ("node_modules", "venv", ".venv", "dist", "build", ".git",
              "__pycache__", ".next", "coverage", "vendor", "target")
 
+
+def _generate_project_summary(files: dict, repo_name: str) -> dict:
+    """
+    Understand what the project is, what it does, what stack it uses.
+    Uses AI for the narrative, static analysis for the facts.
+    """
+    # Detect stack from file extensions and package files
+    exts = [f.rsplit(".", 1)[-1] for f in files if "." in f]
+    ext_counts = {}
+    for e in exts:
+        ext_counts[e] = ext_counts.get(e, 0) + 1
+
+    stack = []
+    if "py" in ext_counts:
+        stack.append("Python")
+        # Detect framework
+        all_code = " ".join(list(files.values())[:10])
+        if "fastapi" in all_code.lower() or "from fastapi" in all_code.lower():
+            stack.append("FastAPI")
+        elif "flask" in all_code.lower():
+            stack.append("Flask")
+        elif "django" in all_code.lower():
+            stack.append("Django")
+    if any(e in ext_counts for e in ("jsx", "tsx")):
+        stack.append("React")
+    if "ts" in ext_counts or "tsx" in ext_counts:
+        stack.append("TypeScript")
+    elif "js" in ext_counts or "jsx" in ext_counts:
+        stack.append("JavaScript")
+    if "java" in ext_counts:
+        stack.append("Java")
+    if "css" in ext_counts or "scss" in ext_counts:
+        stack.append("CSS")
+    if "sql" in ext_counts:
+        stack.append("SQL")
+
+    # Detect project type
+    filenames = [f.lower() for f in files]
+    project_type = "Application"
+    if any("api" in f or "route" in f or "endpoint" in f for f in filenames):
+        project_type = "API / Backend Service"
+    if any("component" in f or "page" in f or "app.jsx" in f or "app.tsx" in f for f in filenames):
+        project_type = "Frontend Web Application"
+    if any(("api" in f or "route" in f) and ("component" in f or "page" in f) for f in filenames):
+        project_type = "Full-Stack Web Application"
+    if any("test" in f or "spec" in f for f in filenames):
+        project_type += " (with tests)"
+
+    # Build a compact file tree for AI
+    file_list = "\n".join(f"  {f} ({len(v.splitlines())} lines)" for f, v in list(files.items())[:25])
+
+    # Sample key files for AI to understand the project
+    key_files = []
+    priority = ["main.py", "app.py", "index.js", "app.js", "App.jsx", "App.tsx",
+                "package.json", "requirements.txt", "README.md"]
+    for p in priority:
+        for fn, code in files.items():
+            if fn.endswith(p):
+                key_files.append(f"=== {fn} ===\n{code[:600]}")
+                break
+    if not key_files:
+        # Take first 3 files
+        for fn, code in list(files.items())[:3]:
+            key_files.append(f"=== {fn} ===\n{code[:400]}")
+
+    prompt = f"""You are a senior developer reviewing a project called "{repo_name}".
+
+Files in this project:
+{file_list}
+
+Key file contents:
+{chr(10).join(key_files[:3])}
+
+Write a developer summary with these exact sections:
+
+WHAT IT IS: One sentence describing what this project is.
+
+WHAT IT DOES: 2-3 sentences explaining the main functionality.
+
+TECH STACK: List the technologies used and why.
+
+PROJECT STRUCTURE: Briefly describe how the code is organized (2-3 sentences).
+
+CURRENT STATE: Is this a prototype, MVP, or production-ready? What's missing?
+
+Keep it practical and honest. Max 200 words total."""
+
+    try:
+        ai_summary = ask_ai(prompt)
+    except Exception:
+        ai_summary = f"A {project_type} built with {', '.join(stack) or 'unknown stack'}."
+
+    return {
+        "project_name": repo_name,
+        "project_type": project_type,
+        "stack": stack,
+        "file_count": len(files),
+        "total_lines": sum(len(v.splitlines()) for v in files.values()),
+        "languages": ext_counts,
+        "ai_summary": ai_summary,
+    }
+
+
+def _load_files_from_zip(zf) -> dict:
+    files = {}
+    for name in zf.namelist():
+        parts = name.replace("\\", "/").split("/")
+        if any(skip in parts for skip in SKIP_DIRS):
+            continue
+        if name.endswith(SUPPORTED) and not name.endswith("/"):
+            code = zf.read(name).decode("utf-8", errors="ignore").strip()
+            if code and len(code) > 20:
+                files[name] = code
+    return files
 
 # ── ZIP upload ────────────────────────────────────────────────────────────────
 
@@ -33,35 +143,36 @@ async def analyze_zip(file: UploadFile = File(...)):
     except zipfile.BadZipFile:
         return {"error": "Invalid ZIP file"}
 
-    files = {}
-    for name in zf.namelist():
-        # Skip heavy/irrelevant directories
-        parts = name.replace("\\", "/").split("/")
-        if any(skip in parts for skip in SKIP_DIRS):
-            continue
-        if name.endswith(SUPPORTED) and not name.endswith("/"):
-            code = zf.read(name).decode("utf-8", errors="ignore").strip()
-            if code and len(code) > 20:  # skip empty/tiny files
-                files[name] = code
+    files = _load_files_from_zip(zf)
     zf.close()
 
     if not files:
-        return {"error": "No supported source files found (.py .js .ts .jsx .tsx .java)"}
+        return {"error": "No supported source files found (.py .js .ts .jsx .tsx .java .css .html .sql)"}
 
-    # Cap at MAX_FILES — prioritize Python files
-    py = {k: v for k, v in files.items() if k.endswith(".py")}
+    py    = {k: v for k, v in files.items() if k.endswith(".py")}
     other = {k: v for k, v in files.items() if not k.endswith(".py")}
     files = dict(list(py.items())[:MAX_FILES] + list(other.items())[:max(0, MAX_FILES - len(py))])
 
-    t0 = time.time()
-    report = analyze_repository(files)
-    duration = round(time.time() - t0, 1)
-
-    # Save to history
     repo_name = file.filename.replace(".zip", "") or "uploaded-project"
+    t0 = time.time()
+
+    # Run project summary + full analysis in parallel
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        summary_fut = ex.submit(_generate_project_summary, files, repo_name)
+        report_fut  = ex.submit(analyze_repository, files)
+        project_summary = summary_fut.result()
+        report = report_fut.result()
+
+    duration = round(time.time() - t0, 1)
     _save_to_history(repo_name, report)
 
-    return {**asdict(report), "repo_name": repo_name, "duration_sec": duration}
+    return {
+        **asdict(report),
+        "project_summary": project_summary,
+        "repo_name": repo_name,
+        "duration_sec": duration,
+    }
 
 
 # ── GitHub URL ────────────────────────────────────────────────────────────────
@@ -75,22 +186,33 @@ def analyze_github_repo(req: GithubRepoRequest):
         files = clone_and_scan(req.repo_url)
     except Exception as e:
         return {"error": f"Failed to clone: {e}"}
-
     if not files:
         return {"error": "No supported source files found"}
 
-    py = {k: v for k, v in files.items() if k.endswith(".py")}
+    py    = {k: v for k, v in files.items() if k.endswith(".py")}
     other = {k: v for k, v in files.items() if not k.endswith(".py")}
     files = dict(list(py.items())[:MAX_FILES] + list(other.items())[:max(0, MAX_FILES - len(py))])
 
-    t0 = time.time()
-    report = analyze_repository(files)
-    duration = round(time.time() - t0, 1)
-
     repo_name = req.repo_url.rstrip("/").split("/")[-1]
+    t0 = time.time()
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        summary_fut = ex.submit(_generate_project_summary, files, repo_name)
+        report_fut  = ex.submit(analyze_repository, files)
+        project_summary = summary_fut.result()
+        report = report_fut.result()
+
+    duration = round(time.time() - t0, 1)
     _save_to_history(repo_name, report)
 
-    return {**asdict(report), "repo_name": repo_name, "repo_url": req.repo_url, "duration_sec": duration}
+    return {
+        **asdict(report),
+        "project_summary": project_summary,
+        "repo_name": repo_name,
+        "repo_url": req.repo_url,
+        "duration_sec": duration,
+    }
 
 
 # ── Recurring issues ──────────────────────────────────────────────────────────
