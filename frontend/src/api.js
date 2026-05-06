@@ -60,10 +60,15 @@ export const learningMode      = (code, level = "beginner") => axios.post(`${BAS
 export const benchmarkModels   = (code, task = "review", models = ["deepseek-coder"]) => axios.post(`${BASE}/extras/benchmark`, { code, task, models });
 export const listModels        = () => axios.get(`${BASE}/models`);
 
-// Pipeline
-export const runPipeline = (files, max_files = 5, severity_filter = "all") =>
-  axios.post(`${BASE}/pipeline/run`, { files, max_files, severity_filter });
+// Repository Intelligence
+export const analyzeRepoZip    = (file) => { const f = new FormData(); f.append("file", file); return axios.post(`${BASE}/repo/analyze-zip`, f); };
+export const analyzeRepoGithub = (repo_url) => axios.post(`${BASE}/repo/analyze-github`, { repo_url });
+export const getRecurringIssues = (repo_name) => axios.get(`${BASE}/repo/recurring/${encodeURIComponent(repo_name)}`);
 
 // Intelligence Report
 export const generateReport = (files, repo_name = "project", include_ai_summary = true) =>
   axios.post(`${BASE}/report/generate`, { files, repo_name, include_ai_summary });
+
+// Pipeline
+export const runPipeline = (files, max_files = 5, severity_filter = "all") =>
+  axios.post(`${BASE}/pipeline/run`, { files, max_files, severity_filter });

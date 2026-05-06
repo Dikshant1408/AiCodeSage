@@ -4,7 +4,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import review, analyze, security, github, advanced, analytics, polyglot, extras, pipeline_api, auth, report_api
+from api import review, analyze, security, github, advanced, analytics, polyglot, extras, pipeline_api, auth, report_api, repo_api
 
 app = FastAPI(title="AiCodeSage", version="5.0.0")
 
@@ -16,7 +16,8 @@ app.add_middleware(
 )
 
 # System-level intelligence — things no AI chat tool can do
-app.include_router(auth.router,         prefix="/api/auth",      tags=["Auth"])        # login / signup / JWT
+app.include_router(auth.router,         prefix="/api/auth",      tags=["Auth"])
+app.include_router(repo_api.router,     prefix="/api/repo",      tags=["Repo"])        # repository-level intelligence
 app.include_router(pipeline_api.router, prefix="/api/pipeline",  tags=["Pipeline"])   # 4-agent autonomous loop
 app.include_router(report_api.router,   prefix="/api/report",    tags=["Report"])     # full intelligence report
 app.include_router(advanced.router,     prefix="/api/advanced",  tags=["Advanced"])   # AST control flow, taint, duplicates, graph

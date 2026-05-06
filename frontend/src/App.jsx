@@ -23,6 +23,8 @@ import GithubPage       from "./pages/GithubPage";
 import ReviewPage       from "./pages/ReviewPage";
 import ReportPage       from "./pages/ReportPage";
 
+import RepoIntelligencePage from "./pages/RepoIntelligencePage";
+
 export default function App({ user, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
   const sideW = collapsed ? 52 : 216;
@@ -34,6 +36,7 @@ export default function App({ user, onLogout }) {
         <Routes>
           <Route path="/"               element={<Dashboard />} />
           <Route path="/pipeline"       element={<PipelinePage />} />
+          <Route path="/repo"           element={<RepoIntelligencePage />} />
           <Route path="/security"       element={<SecurityPage />} />
           <Route path="/analytics"      element={<AnalyticsPage />} />
           <Route path="/control-flow"   element={<ControlFlowPage />} />
