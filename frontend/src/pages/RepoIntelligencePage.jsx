@@ -116,18 +116,18 @@ function ProjectSummarySection({ r }) {
   const s = r.project_summary;
   if (!s) return null;
 
-  // Simple robust parser — splits on section headers regardless of markdown formatting
   const parseSection = (text, key) => {
     if (!text) return "";
     const lines = text.split("\n");
     let capturing = false;
     const result = [];
-    const headerPattern = /^[\*\s]*(WHAT IT IS|WHAT IT DOES|HOW IT WORKS|TECH STACK|PROJECT STRUCTURE|CURRENT STATE|WHAT TO BUILD NEXT)[\*\s]*:?/i;
+    const allHeaders = ["WHAT IT IS", "WHAT IT DOES", "HOW IT WORKS", "WHAT IT COULD BECOME",
+                        "TECH STACK", "PROJECT STRUCTURE", "CURRENT STATE", "WHAT TO BUILD NEXT"];
+    const headerPattern = new RegExp(`^[\\*\\s]*(${allHeaders.join("|")})[\\*\\s]*:?`, "i");
 
     for (const line of lines) {
       const isHeader = headerPattern.test(line.trim());
       const isThisHeader = new RegExp(`^[\\*\\s]*${key}[\\*\\s]*:?`, "i").test(line.trim());
-
       if (isThisHeader) { capturing = true; continue; }
       if (isHeader && capturing) break;
       if (capturing) result.push(line);
@@ -136,15 +136,12 @@ function ProjectSummarySection({ r }) {
   };
 
   const ai = s.ai_summary || "";
-  const whatItIs     = parseSection(ai, "WHAT IT IS");
-  const whatItDoes   = parseSection(ai, "WHAT IT DOES");
-  const howItWorks   = parseSection(ai, "HOW IT WORKS");
-  const techStack    = parseSection(ai, "TECH STACK");
-  const structure    = parseSection(ai, "PROJECT STRUCTURE");
-  const currentState = parseSection(ai, "CURRENT STATE");
-  const whatNext     = parseSection(ai, "WHAT TO BUILD NEXT");
+  const whatItIs      = parseSection(ai, "WHAT IT IS");
+  const whatItDoes    = parseSection(ai, "WHAT IT DOES");
+  const howItWorks    = parseSection(ai, "HOW IT WORKS");
+  const whatItCould   = parseSection(ai, "WHAT IT COULD BECOME");
 
-  // Fallback: if parsing failed, show the raw summary
+  // Fallback: show raw if parsing failed
   const showRaw = !whatItIs && !whatItDoes && ai.length > 20;
 
   return (
@@ -168,36 +165,33 @@ function ProjectSummarySection({ r }) {
 
         {/* AI narrative */}
         {showRaw && <p style={{ margin: "0 0 0.75rem", fontSize: "0.88rem", color: "#d1d5db", lineHeight: 1.7, whiteSpace: "pre-line" }}>{ai.replace(/\*\*/g, "")}</p>}
-        {!showRaw && whatItIs && <p style={{ margin: "0 0 0.75rem", fontSize: "1rem", color: "#e5e7eb", fontWeight: 500, lineHeight: 1.5 }}>{whatItIs}</p>}
-        {!showRaw && whatItDoes && <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "#9ca3af", lineHeight: 1.6 }}>{whatItDoes}</p>}
-        {!showRaw && howItWorks && <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "#9ca3af", lineHeight: 1.6 }}>{howItWorks}</p>}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
-          {!showRaw && techStack && (
-            <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "0.875rem" }}>
-              <div style={{ fontSize: "0.65rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>Tech Stack</div>
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "#d1d5db", lineHeight: 1.6, whiteSpace: "pre-line" }}>{techStack}</p>
-            </div>
-          )}
-          {!showRaw && structure && (
-            <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "0.875rem" }}>
-              <div style={{ fontSize: "0.65rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>Project Structure</div>
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "#d1d5db", lineHeight: 1.6, whiteSpace: "pre-line" }}>{structure}</p>
-            </div>
-          )}
-        </div>
-
-        {!showRaw && currentState && (
-          <div style={{ marginTop: "1rem", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 10, padding: "0.875rem" }}>
-            <div style={{ fontSize: "0.65rem", color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>Current State</div>
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "#fcd34d", lineHeight: 1.5, whiteSpace: "pre-line" }}>{currentState}</p>
-          </div>
-        )}
-
-        {!showRaw && whatNext && (
-          <div style={{ marginTop: "1rem", background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 10, padding: "0.875rem" }}>
-            <div style={{ fontSize: "0.65rem", color: "#10b981", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>What to Build Next</div>
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "#6ee7b7", lineHeight: 1.6, whiteSpace: "pre-line" }}>{whatNext}</p>
+        {!showRaw && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {whatItIs && (
+              <div>
+                <div style={{ fontSize: "0.6rem", color: "#6366f1", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "0.3rem" }}>What it is</div>
+                <p style={{ margin: 0, fontSize: "1rem", color: "#e5e7eb", fontWeight: 500, lineHeight: 1.5 }}>{whatItIs}</p>
+              </div>
+            )}
+            {whatItDoes && (
+              <div>
+                <div style={{ fontSize: "0.6rem", color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "0.3rem" }}>What it does</div>
+                <p style={{ margin: 0, fontSize: "0.88rem", color: "#9ca3af", lineHeight: 1.6 }}>{whatItDoes}</p>
+              </div>
+            )}
+            {howItWorks && (
+              <div>
+                <div style={{ fontSize: "0.6rem", color: "#8b5cf6", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "0.3rem" }}>How it works</div>
+                <p style={{ margin: 0, fontSize: "0.88rem", color: "#9ca3af", lineHeight: 1.6 }}>{howItWorks}</p>
+              </div>
+            )}
+            {whatItCould && (
+              <div style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 10, padding: "0.875rem" }}>
+                <div style={{ fontSize: "0.6rem", color: "#10b981", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "0.3rem" }}>What it could become</div>
+                <p style={{ margin: 0, fontSize: "0.88rem", color: "#6ee7b7", lineHeight: 1.6 }}>{whatItCould}</p>
+              </div>
+            )}
           </div>
         )}
 

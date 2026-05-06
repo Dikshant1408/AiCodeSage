@@ -83,31 +83,33 @@ def _generate_project_summary(files: dict, repo_name: str) -> dict:
         for fn, code in list(files.items())[:3]:
             key_files.append(f"=== {fn} ===\n{code[:400]}")
 
-    prompt = f"""You are a senior developer reviewing a project called "{repo_name}".
+    prompt = f"""Look at this project called "{repo_name}" and tell me about it in plain developer language.
 
-Files in this project:
+Files:
 {file_list}
 
-Key file contents:
+Key code:
 {chr(10).join(key_files[:3])}
 
-Write a concise developer summary. Use EXACTLY these section headers, each on its own line:
+Write exactly 4 short paragraphs with these labels:
 
 WHAT IT IS:
+One sentence. What type of app is this and what problem does it solve? Be specific — not "a web application" but "a portfolio site with an AI chat assistant that answers questions about the developer".
+
 WHAT IT DOES:
+2-3 sentences. What can a user actually do with it? What happens when they open it? What are the main features they interact with?
+
 HOW IT WORKS:
-TECH STACK:
-PROJECT STRUCTURE:
-CURRENT STATE:
-WHAT TO BUILD NEXT:
+2 sentences. How does the code actually work? What talks to what? Keep it technical but simple — "the Next.js frontend sends chat messages to a FastAPI backend which queries a SQLite database".
+
+WHAT IT COULD BECOME:
+2-3 sentences. What's the most obvious next step to make this genuinely useful? What's missing that would make it production-ready or significantly more valuable?
 
 Rules:
-- Each section: 2-4 sentences max. No bullet points except TECH STACK and WHAT TO BUILD NEXT.
-- TECH STACK: list as "Technology — what it does in THIS project" (one per line, max 6)
-- WHAT TO BUILD NEXT: numbered list, max 3 items
-- Do NOT repeat any section. Write each section ONCE.
-- Be specific to this project. Use actual file names you can see.
-- Total response: max 250 words."""
+- No bullet points. No markdown. No bold text. Just plain paragraphs.
+- Sound like a developer talking to another developer, not a product manager writing docs.
+- Be specific to THIS project. Use actual file names and code you can see.
+- Max 150 words total."""
 
     try:
         ai_summary = ask_ai(prompt)
