@@ -118,11 +118,20 @@ function ProjectSummarySection({ r }) {
 
   // Parse AI summary into sections
   const parse = (text, key) => {
-    const m = text?.match(new RegExp(`${key}:\\s*([\\s\\S]*?)(?=\\n[A-Z ]+:|$)`, "i"));
-    return m ? m[1].trim() : "";
+    if (!text) return "";
+    // Find the section, stop at the next section header
+    const sectionRegex = new RegExp(
+      `(?:^|\\n)\\*{0,2}${key}\\*{0,2}:?\\s*([\\s\\S]*?)(?=\\n\\*{0,2}(?:WHAT IT IS|WHAT IT DOES|HOW IT WORKS|TECH STACK|PROJECT STRUCTURE|CURRENT STATE|WHAT TO BUILD NEXT)\\*{0,2}:|$)`,
+      "i"
+    );
+    const m = text.match(sectionRegex);
+    if (!m) return "";
+    // Clean up: remove markdown bold markers, trim
+    return m[1].replace(/\*\*/g, "").trim();
   };
+
   const ai = s.ai_summary || "";
-  const whatItIs     = parse(ai, "WHAT IT IS") || ai.split("\n")[0] || "";
+  const whatItIs     = parse(ai, "WHAT IT IS");
   const whatItDoes   = parse(ai, "WHAT IT DOES");
   const howItWorks   = parse(ai, "HOW IT WORKS");
   const techStack    = parse(ai, "TECH STACK");

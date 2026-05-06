@@ -91,26 +91,40 @@ Files in this project:
 Key file contents:
 {chr(10).join(key_files[:3])}
 
-Write a developer summary with these exact sections:
+Write a concise developer summary. Use EXACTLY these section headers, each on its own line:
 
-WHAT IT IS: One clear sentence — what type of application is this and what problem does it solve?
+WHAT IT IS:
+WHAT IT DOES:
+HOW IT WORKS:
+TECH STACK:
+PROJECT STRUCTURE:
+CURRENT STATE:
+WHAT TO BUILD NEXT:
 
-WHAT IT DOES: 3-4 sentences explaining the main features and functionality a user would experience.
-
-HOW IT WORKS: 2-3 sentences on the technical approach — how data flows, what the main components do, how frontend and backend connect (if applicable).
-
-TECH STACK: List each technology and what it's used for in this project specifically.
-
-PROJECT STRUCTURE: How is the code organized? What are the main folders/files and their purpose?
-
-CURRENT STATE: Be honest — is this a prototype, MVP, or production-ready? What key things are missing (auth, tests, error handling, deployment config, etc.)?
-
-WHAT TO BUILD NEXT: The 3 most important things a developer should add or improve to make this project better.
-
-Be specific to THIS project. Use the actual file names and code you can see. Max 300 words."""
+Rules:
+- Each section: 2-4 sentences max. No bullet points except TECH STACK and WHAT TO BUILD NEXT.
+- TECH STACK: list as "Technology — what it does in THIS project" (one per line, max 6)
+- WHAT TO BUILD NEXT: numbered list, max 3 items
+- Do NOT repeat any section. Write each section ONCE.
+- Be specific to this project. Use actual file names you can see.
+- Total response: max 250 words."""
 
     try:
         ai_summary = ask_ai(prompt)
+        # Deduplicate: if the model repeated sections, keep only the first occurrence of each
+        sections = ["WHAT IT IS:", "WHAT IT DOES:", "HOW IT WORKS:", "TECH STACK:",
+                    "PROJECT STRUCTURE:", "CURRENT STATE:", "WHAT TO BUILD NEXT:"]
+        seen = set()
+        clean_lines = []
+        for line in ai_summary.splitlines():
+            upper = line.strip().upper().lstrip("*").strip()
+            matched = next((s for s in sections if upper.startswith(s.rstrip(":"))), None)
+            if matched:
+                if matched in seen:
+                    break  # stop at first repeated section header
+                seen.add(matched)
+            clean_lines.append(line)
+        ai_summary = "\n".join(clean_lines).strip()
     except Exception:
         ai_summary = f"A {project_type} built with {', '.join(stack) or 'unknown stack'}."
 
