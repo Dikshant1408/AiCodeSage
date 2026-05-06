@@ -1,274 +1,107 @@
-# AI Code Assistant
+# AiCodeSage v5.0
 
-> **MCA Final Year Project** — AI-powered software engineering platform.
-> Combines static analysis, multi-language engines, control flow analysis, autonomous bug-fixing, supply chain security scanning, and a locally-running LLM (DeepSeek Coder via Ollama) into a full-stack developer tool comparable to **SonarQube + GitHub Copilot + Snyk** — with zero API costs.
+**Multi-Agent Code Intelligence Platform** — MCA Final Year Project
+
+> Not a chatbot. A code intelligence engine that *runs* on your code using static analysis, AST parsing, taint tracking, and a 4-agent autonomous improvement pipeline.
 
 ---
 
-## Tech Stack
+## What Makes This Different from ChatGPT / Claude / Copilot
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18, Vite, Recharts, D3.js, Three.js, Monaco Editor |
-| Backend | FastAPI, Python 3.10+, SQLite |
-| AI Engine | Ollama + DeepSeek Coder (local, free) |
-| Static Analysis | pylint, bandit, flake8, Python AST |
-| Vulnerability DB | OSV API (open source, no key needed) |
-| RAG | ChromaDB + sentence-transformers |
-| VS Code Extension | TypeScript, VS Code Extension API |
+| Capability | ChatGPT | AiCodeSage |
+|---|---|---|
+| Runs pylint + bandit + flake8 | ✗ | ✅ (parallel) |
+| AST taint flow tracking | ✗ | ✅ |
+| Verifies AI patches actually work | ✗ | ✅ (re-runs static analysis) |
+| Persistent quality score history | ✗ | ✅ (SQLite) |
+| Real CVE data from OSV database | ✗ | ✅ |
+| Jaccard token similarity for duplicates | ✗ | ✅ |
+| Knowledge graph from AST traversal | ✗ | ✅ |
+| Grounded RAG chat over your repo | ✗ | ✅ (ChromaDB) |
+
+---
+
+## Architecture
+
+```
+Frontend (React + Vite)
+        ↓
+Backend (FastAPI)
+        ↓
+┌─────────────────────────────────────┐
+│         4-Agent Pipeline            │
+│  Agent 1: Static Analyzer           │  pylint + bandit + flake8 (parallel)
+│  Agent 2: Patch Generator           │  Groq LLM → fixed code
+│  Agent 3: Verifier                  │  re-runs static analysis on patch
+│  Agent 4: Report Writer             │  before/after executive summary
+└─────────────────────────────────────┘
+        ↓
+┌─────────────────────────────────────┐
+│         Static Engines              │
+│  AST Control Flow + Taint Tracker   │
+│  Jaccard Duplicate Detector         │
+│  Knowledge Graph Builder            │
+│  Performance Pattern Matcher        │
+│  OSV CVE Scanner                    │
+└─────────────────────────────────────┘
+        ↓
+┌─────────────────────────────────────┐
+│         Data Layer                  │
+│  SQLite — quality history           │
+│  ChromaDB — code embeddings (RAG)   │
+│  MD5 cache — incremental analysis   │
+└─────────────────────────────────────┘
+```
 
 ---
 
 ## Features
 
-### Core
+### Core Engine
+| Feature | Description | AI? |
+|---|---|---|
+| **Autonomous Pipeline** | 4 agents: analyze → patch → verify → report | Agent 2 + 4 |
+| **Taint Path Visualizer** | Traces user input → dangerous sinks via AST | No |
+| **Quality Score History** | SQLite-backed trending across sessions | No |
 
-| Feature | Route | Description |
-|---------|-------|-------------|
-| Dashboard | `/` | ZIP upload, quality history chart, feature overview |
-| Code Review | `/review` | Per-function AI review + A–F quality score gauge |
-| Bug Detection | `/bugs` | Logical errors, crashes, off-by-one, runtime issues |
-| Explain Code | `/explain` | Step-by-step breakdown + time/space complexity |
-| Security Scan | `/security` | SQL injection, hardcoded secrets, unsafe eval, OWASP |
-| Docs Generator | `/docs` | Docstrings, README sections, API documentation |
-| Test Generator | `/tests` | pytest unit tests — happy path, edge cases, errors |
-| GitHub Analyzer | `/github` | Clone any public repo + RAG-powered codebase chat |
+### Static Intelligence
+| Feature | Description | AI? |
+|---|---|---|
+| **Control Flow Analysis** | Cyclomatic complexity, infinite loops, branch paths | No |
+| **Duplicate Detector** | Jaccard token similarity, finds near-duplicates across files | No |
+| **Knowledge Graph** | AST call graph — files, functions, classes, imports, calls | No |
+| **Bug-Fix Agent** | Scan → extract issues → AI patch per issue → confidence score | Yes |
+| **Performance Analyzer** | O(n²) loops, N+1 queries, unbounded recursion | No |
+| **Architecture Analysis** | Parses codebase structure, identifies patterns | Yes |
+| **Multi-Language Engines** | Separate AST parsers for Python, JS, Java | No |
 
-### Advanced
-
-| Feature | Route | Description |
-|---------|-------|-------------|
-| Control Flow | `/control-flow` | Branch paths, cyclomatic complexity, taint tracking, loop risks |
-| Duplicates | `/duplicates` | Token-based Jaccard similarity — finds near-duplicate functions |
-| Auto-Fix | `/autofix` | Describe issue → AI generates unified diff patch |
-| Tech Debt | `/debt` | Debt score, categorized reasons, estimated refactor effort |
-| Debugger | `/debug` | Paste any error traceback → AI explains root cause + fix |
-| Architecture | `/architecture` | AI maps modules, services, and dependencies across files |
-| Bug-Fix Agent | `/bug-fix-agent` | Autonomous: scan → static analysis → AI patch per issue |
-| Code Graph | `/knowledge-graph` | Interactive D3 force graph — files, functions, classes, call chains |
-
-### Intelligence
-
-| Feature | Route | Description |
-|---------|-------|-------------|
-| Multi-Language | `/polyglot` | Python · JS · TS · Java engines + confidence-scored findings |
-| PR Review | `/pr-review` | Paste git diff → AI inline comments per line (like GitHub Copilot) |
-| Autopilot | `/autopilot` | Multi-step agent: scan → prioritize → generate improvement plans |
-| Analytics | `/analytics` | Recharts quality score trends, bug density, security history (SQLite) |
-| Dependencies | `/dependencies` | Scan requirements.txt / package.json for CVEs via OSV database |
-| Learning Mode | `/learning` | Beginner / Intermediate / Advanced explanations with exercises |
-| Benchmark | `/benchmark` | Compare multiple Ollama models — response time, quality, length |
-| Performance | `/performance` | Detect O(n²) loops, N+1 queries, expensive recursion + AI analysis |
-| Export Report | `/report` | Full AI analysis report — download as Markdown or PDF |
-
-### VS Code Extension
-
-Right-click any code → **AI Code Assistant** submenu:
-
-| Command | Shortcut | Description |
-|---------|----------|-------------|
-| Review Code | `Ctrl+Shift+R` | Full review + quality score in sidebar |
-| Detect Bugs | `Ctrl+Shift+B` | Bug detection on selection or full file |
-| Explain Code | `Ctrl+Shift+E` | Step-by-step explanation |
-| Security Scan | `Ctrl+Shift+S` | Security vulnerability scan |
-| Generate Tests | — | pytest unit test generation |
-| Generate Docs | — | Docstring + README generation |
-| Auto-Fix Issue | — | Input issue description → AI diff patch |
-| Debug Error | — | Paste traceback → AI explains + fixes |
-| Open Dashboard | — | Opens web dashboard in browser |
+### Data & Memory
+| Feature | Description | AI? |
+|---|---|---|
+| **CVE Scanner** | Queries OSV API for real CVEs in requirements.txt / package.json | No |
+| **Repo RAG Chat** | Clone repo → ChromaDB embeddings → grounded answers | Yes |
+| **Code Review** | Static analysis + single AI call | Yes |
+| **Export Report** | Full intelligence report — static + taint + graph + AI summary | Yes |
 
 ---
 
-## Setup
+## Tech Stack
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- [Ollama](https://ollama.ai) installed and running
+**Backend**
+- Python 3.12, FastAPI, uvicorn
+- Groq API (llama-3.1-8b-instant) — free tier
+- pylint, bandit, flake8 — static analysis
+- ChromaDB + sentence-transformers — RAG
+- SQLite — persistent storage
+- JWT (HMAC-SHA256) — auth, no extra deps
 
-### 1. Pull the AI model
-```bash
-ollama pull deepseek-coder
-```
-
-### 2. Backend
-```bash
-cd ai-code-assistant/backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-Runs at **http://localhost:8000** — interactive docs at **http://localhost:8000/docs**
-
-### 3. Frontend
-```bash
-cd ai-code-assistant/frontend
-npm install
-npm run dev
-```
-Runs at **http://localhost:3001**
-
-### 4. VS Code Extension (optional)
-```bash
-cd ai-code-assistant/vscode-extension
-npm install
-npm run compile
-# Press F5 in VS Code → Extension Development Host opens
-```
-
----
-
-## API Reference
-
-### Core
-```
-POST /api/review/          — Code review + quality score
-POST /api/analyze/bugs     — Bug detection
-POST /api/explain/         — Code explanation
-POST /api/security/        — Security scan
-POST /api/docs/            — Documentation generation
-POST /api/tests/           — Test generation
-POST /api/analyze/upload   — ZIP project upload
-POST /api/github/          — GitHub repo clone + analysis
-POST /api/analyze/chat     — RAG chat with codebase
-```
-
-### Advanced
-```
-POST /api/advanced/control-flow        — Control flow + taint analysis
-POST /api/advanced/duplicates          — Duplicate code detection
-POST /api/advanced/autofix             — AI fix patch generation
-POST /api/advanced/architecture        — Architecture summarizer
-POST /api/advanced/technical-debt      — Technical debt report
-POST /api/advanced/complexity-refactor — Function split suggestions
-POST /api/advanced/debug               — AI error debugger
-POST /api/advanced/semantic-search     — Semantic code search
-POST /api/advanced/bug-fix-agent       — Autonomous bug-fix agent
-POST /api/advanced/knowledge-graph     — Code knowledge graph builder
-```
-
-### Intelligence
-```
-POST /api/polyglot/analyze             — Multi-language analysis (Python/JS/TS/Java)
-POST /api/polyglot/multi-analyze       — Parallel multi-file static analysis
-POST /api/extras/pr-review             — AI pull request reviewer
-POST /api/extras/autopilot             — Multi-step improvement agent
-POST /api/extras/architecture-refactor — Architecture refactoring suggestions
-POST /api/extras/dependency-scan       — CVE scan via OSV database
-POST /api/extras/plugins/run           — Run custom analyzer plugins
-GET  /api/extras/plugins/list          — List available plugins
-POST /api/extras/confidence-score      — AI confidence + evidence scoring
-POST /api/extras/incremental-analyze   — Analyze only changed files (git diff)
-POST /api/extras/learning-mode         — Educational code explanation
-POST /api/extras/benchmark             — Multi-model benchmarking
-POST /api/extras/performance           — Performance analyzer (O(n²), N+1, recursion)
-POST /api/extras/generate-report       — Full report → Markdown + PDF export
-```
-
-### Analytics & Models
-```
-POST /api/analytics/save               — Save analysis snapshot to SQLite
-GET  /api/analytics/history/{repo}     — Get historical quality data
-GET  /api/analytics/repos              — List all tracked repositories
-GET  /api/models                       — List available Ollama models
-```
-
----
-
-## System Architecture
-
-```
-Browser (React + Recharts + D3.js + Three.js)
-  Collapsible Sidebar (25 pages, 3 groups)
-         │
-         ▼
-FastAPI Backend  (http://localhost:8000)  v4.0 — 11 routers
-         │
-         ├── Language Engines     Python (AST+pylint) / JS / TS / Java
-         ├── Code Parser          AST → functions, classes, imports
-         ├── Static Analysis      pylint + bandit + flake8
-         ├── Control Flow         branch paths, taint, loop detection
-         ├── Duplicate Detector   token Jaccard similarity
-         ├── Bug-Fix Agent        scan → extract issues → AI patches
-         ├── Knowledge Graph      AST → D3 force graph
-         ├── Confidence Scorer    pattern + static + AI evidence (0–100%)
-         ├── Dependency Scanner   OSV API CVE lookup (PyPI + npm)
-         ├── Plugin System        auto-discover plugins from plugins/
-         ├── Parallel Engine      ThreadPoolExecutor multi-file analysis
-         ├── Analytics DB         SQLite quality history
-         ├── Incremental Scanner  MD5 hash diff → changed files only
-         ├── Performance Analyzer O(n²), N+1, recursion detection
-         ├── Report Generator     Markdown + PDF export
-         ├── AI Engine            Ollama → DeepSeek Coder (1 call/analysis)
-         └── RAG System           ChromaDB + sentence-transformers
-
-VS Code Extension  (TypeScript)
-         └── Calls same FastAPI backend — no extra setup needed
-```
-
----
-
-## Performance
-
-The analysis pipeline is optimized to a **single AI call** per analysis:
-
-| Before | After |
-|--------|-------|
-| 3 full-file AI calls + 2 per function × N functions | 1 combined prompt → review + bugs + per-function |
-| ~3–5 min for a file with 8 functions | ~20–40 sec |
-
----
-
-## Plugin System
-
-Drop a file in `backend/plugins/` to add a custom analyzer:
-
-```python
-from analyzers.plugin_system import AnalyzerPlugin
-
-class MyPlugin(AnalyzerPlugin):
-    name = "my_checker"
-    description = "Custom rule"
-    version = "1.0.0"
-
-    def analyze(self, code, filename="code", language="python"):
-        issues = []
-        # your logic here
-        return {"issues": issues, "metrics": {}}
-```
-
-Plugins are auto-discovered. Run via `POST /api/extras/plugins/run`.
-Two example plugins included: `complexity_plugin.py`, `license_checker.py`.
-
----
-
-## Quality Score Formula
-
-```
-score = 10 − (bugs × 1.5 + security_issues × 2.0 + code_smells × 0.3)
-score = clamp(score, 0, 10)
-```
-
-| Grade | Score |
-|-------|-------|
-| A+ | ≥ 9.5 |
-| A  | ≥ 9.0 |
-| B  | ≥ 7.0 |
-| C  | ≥ 6.0 |
-| D  | ≥ 5.0 |
-| F  | < 5.0 |
-
----
-
-## CLI Tool
-
-```bash
-cd ai-code-assistant/backend
-python cli.py scan ./myproject
-python cli.py review auth.py
-python cli.py bugs auth.py
-python cli.py security auth.py
-python cli.py debug "TypeError: 'NoneType' object is not iterable"
-```
+**Frontend**
+- React 18, Vite, React Router
+- Recharts — analytics charts
+- D3.js — knowledge graph visualization
+- Three.js — 3D particle scene
+- jsPDF — PDF export
+- Inline styles only (no Tailwind)
 
 ---
 
@@ -277,64 +110,174 @@ python cli.py debug "TypeError: 'NoneType' object is not iterable"
 ```
 ai-code-assistant/
 ├── backend/
-│   ├── main.py                    FastAPI v4.0 — 11 routers
-│   ├── requirements.txt
-│   ├── cli.py                     CLI tool
-│   ├── analytics.db               SQLite (auto-created on first run)
 │   ├── api/
-│   │   ├── review.py / analyze.py / explain.py / docs_gen.py
-│   │   ├── security.py / github.py / tests_gen.py
-│   │   ├── advanced.py            10 advanced endpoints
-│   │   ├── analytics.py           Historical quality tracking
-│   │   ├── polyglot.py            Multi-language endpoints
-│   │   └── extras.py              PR review, autopilot, deps, plugins,
-│   │                              performance, report, benchmark, etc.
+│   │   ├── auth.py          # JWT login/signup/forgot-password
+│   │   ├── pipeline_api.py  # 4-agent autonomous pipeline
+│   │   ├── advanced.py      # control flow, duplicates, graph, bug-fix agent
+│   │   ├── security.py      # bandit + taint tracking
+│   │   ├── analytics.py     # SQLite quality history
+│   │   ├── extras.py        # CVE scan, performance, incremental, plugins
+│   │   ├── polyglot.py      # multi-language static engines
+│   │   ├── review.py        # static + AI pipeline
+│   │   ├── analyze.py       # ZIP upload, RAG chat
+│   │   ├── github.py        # repo clone + RAG
+│   │   └── report_api.py    # full intelligence report
 │   ├── analyzers/
-│   │   ├── pipeline.py            Optimized single-call pipeline
-│   │   ├── code_parser.py         AST parser
-│   │   ├── static_analyzer.py     pylint / bandit / flake8
-│   │   ├── control_flow.py        Branch + taint analysis
-│   │   ├── duplicate_detector.py  Jaccard similarity
-│   │   ├── bug_fix_agent.py       Autonomous patch generator
-│   │   ├── knowledge_graph.py     AST → graph builder
-│   │   ├── quality_score.py       Score calculator
-│   │   ├── confidence_scorer.py   Evidence-based confidence scoring
-│   │   ├── dependency_scanner.py  OSV CVE scanner
-│   │   ├── parallel_engine.py     ThreadPoolExecutor multi-file
-│   │   ├── incremental.py         Git diff → changed files
-│   │   ├── analytics_db.py        SQLite history
-│   │   └── plugin_system.py       Plugin loader
-│   ├── language_engines/
-│   │   ├── base.py / detector.py
-│   │   ├── python/engine.py       AST + pylint + bandit
-│   │   ├── javascript/engine.py   Regex + static checks
-│   │   └── java/engine.py         Regex + static checks
-│   ├── plugins/
-│   │   ├── complexity_plugin.py   Flags functions > 50 lines
-│   │   └── license_checker.py     Checks for license headers
-│   └── ai_engine/
-│       ├── ollama_client.py       Ollama HTTP client + model listing
-│       ├── prompts.py             20+ prompt templates
-│       ├── rag_chat.py            ChromaDB RAG
-│       └── test_generator.py
-├── frontend/
-│   └── src/
-│       ├── App.jsx                25 routes, collapsible sidebar layout
-│       ├── api.js                 All API calls
-│       ├── components/
-│       │   ├── Sidebar.jsx        Collapsible left sidebar (3 groups)
-│       │   ├── CodeAnalysisPage.jsx
-│       │   ├── QualityScore.jsx   SVG arc gauge
-│       │   ├── ResultBlock.jsx
-│       │   └── Scene3D.jsx        Three.js particle scene
-│       └── pages/                 25 feature pages
-│           ├── Dashboard.jsx      Hero + stats + mini chart + upload
-│           ├── AnalyticsPage.jsx  Recharts line + bar charts
-│           ├── PerformancePage.jsx O(n²) / N+1 / recursion detector
-│           ├── ReportPage.jsx     Markdown + PDF export
-│           └── ... (21 more)
-└── vscode-extension/
-    ├── src/extension.ts           9 commands + sidebar webview
-    ├── src/api.ts
-    └── src/webview.ts
+│   │   ├── static_analyzer.py    # pylint/bandit/flake8 parallel runner
+│   │   ├── control_flow.py       # AST taint tracking + branch analysis
+│   │   ├── duplicate_detector.py # Jaccard token similarity
+│   │   ├── knowledge_graph.py    # AST call graph builder
+│   │   ├── quality_score.py      # scoring formula
+│   │   ├── dependency_scanner.py # OSV CVE API
+│   │   ├── confidence_scorer.py  # evidence-based confidence
+│   │   ├── incremental.py        # MD5 change detection
+│   │   ├── parallel_engine.py    # ThreadPoolExecutor orchestration
+│   │   ├── bug_fix_agent.py      # autonomous issue → patch agent
+│   │   ├── pipeline.py           # single-file analysis pipeline
+│   │   └── plugin_system.py      # dynamic plugin loader
+│   ├── ai_engine/
+│   │   ├── ollama_client.py  # Groq API (lazy singleton)
+│   │   ├── prompts.py        # concise prompt templates
+│   │   ├── rag_chat.py       # ChromaDB RAG
+│   │   └── test_generator.py
+│   ├── language_engines/     # Python / JS / Java AST engines
+│   ├── plugins/              # complexity_plugin, license_checker
+│   ├── main.py
+│   └── requirements.txt
+└── frontend/
+    └── src/
+        ├── pages/
+        │   ├── Dashboard.jsx
+        │   ├── PipelinePage.jsx      # flagship — 4-agent pipeline UI
+        │   ├── SecurityPage.jsx      # taint path visualizer
+        │   ├── AnalyticsPage.jsx     # quality history charts
+        │   ├── ControlFlowPage.jsx
+        │   ├── DuplicatesPage.jsx
+        │   ├── KnowledgeGraphPage.jsx
+        │   ├── BugFixAgentPage.jsx
+        │   ├── PerformancePage.jsx
+        │   ├── ArchitecturePage.jsx
+        │   ├── PolyglotPage.jsx
+        │   ├── DependencyPage.jsx
+        │   ├── GithubPage.jsx
+        │   ├── ReviewPage.jsx
+        │   ├── ReportPage.jsx
+        │   └── AuthPage.jsx          # login / signup / forgot password
+        └── components/
+            ├── Sidebar.jsx
+            ├── QualityScore.jsx
+            └── ResultBlock.jsx
 ```
+
+---
+
+## Setup
+
+### Prerequisites
+- Python 3.12
+- Node.js 18+
+- Groq API key (free at [console.groq.com](https://console.groq.com))
+
+### Backend
+
+```bash
+cd ai-code-assistant/backend
+python -m venv venv
+venv\Scripts\activate        # Windows
+pip install -r requirements.txt
+```
+
+Create `.env`:
+```
+GROQ_API_KEY=your_key_here
+JWT_SECRET=change-this-in-production
+```
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Frontend
+
+```bash
+cd ai-code-assistant/frontend
+npm install --legacy-peer-deps
+npm run dev
+```
+
+Open http://localhost:3001
+
+---
+
+## API Endpoints
+
+| Router | Prefix | Key Endpoints |
+|---|---|---|
+| Auth | `/api/auth` | POST /signup, /login, /forgot-password, /reset-password |
+| Pipeline | `/api/pipeline` | POST /run |
+| Advanced | `/api/advanced` | POST /control-flow, /duplicates, /knowledge-graph, /bug-fix-agent |
+| Security | `/api/security` | POST / |
+| Analytics | `/api/analytics` | POST /save, GET /history/{repo} |
+| Extras | `/api/extras` | POST /dependency-scan, /performance, /confidence-score |
+| Polyglot | `/api/polyglot` | POST /analyze, /multi-analyze |
+| Review | `/api/review` | POST / |
+| Analyze | `/api/analyze` | POST /upload, /bugs, /chat |
+| GitHub | `/api/github` | POST / |
+| Report | `/api/report` | POST /generate |
+
+---
+
+## Quality Score Formula
+
+```
+score = 10 - (bugs × 1.5 + security_issues × 2.0 + code_smells × 0.3)
+score = clamp(score, 0, 10)
+```
+
+| Score | Grade |
+|---|---|
+| 9–10 | A+ |
+| 8–9  | A  |
+| 7–8  | B  |
+| 6–7  | C  |
+| 5–6  | D  |
+| < 5  | F  |
+
+---
+
+## Performance Optimizations
+
+- pylint + bandit + flake8 run in **parallel threads** (3x faster than sequential)
+- Tool timeout reduced from 30s → 10s
+- AI prompts capped at 800–1500 chars (2x faster Groq responses)
+- Knowledge graph skips AI call — summary built from stats
+- Performance analyzer skips AI when static analysis already found issues
+- ZIP upload uses static-only analysis (no AI) — instant for large projects
+- Groq client is a **lazy singleton** — initialized once after dotenv loads
+- Pipeline Agent 2 patches 2 files in **parallel threads**
+
+---
+
+## Auth System
+
+- Passwords: PBKDF2-SHA256 with random salt (260,000 iterations)
+- Tokens: HMAC-SHA256 JWT, 72h expiry, no external dependencies
+- Forgot password: 6-character OTP token, 1h expiry, shown in UI (demo mode) or emailed if SMTP configured
+- Users stored in `users.db` (SQLite, excluded from git)
+
+---
+
+## Deployment
+
+**Backend → Render**
+- Build: `pip install -r requirements.txt`
+- Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- Env vars: `GROQ_API_KEY`, `JWT_SECRET`
+
+**Frontend → Vercel**
+- Root: `ai-code-assistant/frontend`
+- Env vars: `VITE_API_URL=https://your-render-url.onrender.com`
+
+---
+
+*MCA Final Year Project — AiCodeSage v5.0*

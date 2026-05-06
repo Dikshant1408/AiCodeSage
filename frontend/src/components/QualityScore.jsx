@@ -21,7 +21,7 @@ export default function QualityScore({ quality }) {
               style={{ transition: "stroke-dashoffset 1s ease" }} />
           </svg>
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: "1.2rem", fontWeight: 700, color }}>{score}</span>
+            <span style={{ fontSize: "1.2rem", fontWeight: 700, color: color }}>{score}</span>
             <span style={{ fontSize: "0.65rem", color: "#6b7280" }}>/10</span>
           </div>
         </div>
@@ -60,7 +60,7 @@ export default function QualityScore({ quality }) {
 function Metric({ label, value, color }) {
   return (
     <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: "10px", padding: "0.5rem", textAlign: "center" }}>
-      <div style={{ fontSize: "1.1rem", fontWeight: 700, color }}>{value}</div>
+      <div style={{ fontSize: "1.1rem", fontWeight: 700, color: color }}>{value}</div>
       <div style={{ fontSize: "0.7rem", color: "#6b7280" }}>{label}</div>
     </div>
   );

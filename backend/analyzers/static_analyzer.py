@@ -1,51 +1,56 @@
-import subprocess
-import tempfile
-import os
+"""
+Static analyzer — runs pylint, bandit, flake8 in parallel threads.
+Each tool writes its own temp file and runs with a tight timeout.
+"""
+import subprocess, tempfile, os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+_TIMEOUT = 10  # seconds per tool (was 30)
+
+
+def _run_tool(args: list, code: str, suffix: str = ".py") -> str:
+    with tempfile.NamedTemporaryFile(suffix=suffix, mode="w", delete=False, encoding="utf-8") as f:
+        f.write(code)
+        tmp = f.name
+    try:
+        r = subprocess.run(args + [tmp], capture_output=True, text=True, timeout=_TIMEOUT)
+        return (r.stdout or r.stderr or "").strip()
+    except subprocess.TimeoutExpired:
+        return f"[{args[0]} timed out after {_TIMEOUT}s]"
+    except FileNotFoundError:
+        return f"[{args[0]} not installed]"
+    except Exception as e:
+        return f"[{args[0]} error: {e}]"
+    finally:
+        try:
+            os.unlink(tmp)
+        except Exception:
+            pass
+
 
 def run_pylint(code: str) -> str:
-    """Run pylint on a code string and return the output."""
-    with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
-        f.write(code)
-        tmp_path = f.name
-    try:
-        result = subprocess.run(
-            ["pylint", tmp_path, "--output-format=text", "--score=yes"],
-            capture_output=True, text=True, timeout=30
-        )
-        return result.stdout or result.stderr
-    except FileNotFoundError:
-        return "pylint not installed. Run: pip install pylint"
-    finally:
-        os.unlink(tmp_path)
+    return _run_tool(["pylint", "--output-format=text", "--score=no",
+                      "--disable=C0114,C0115,C0116,R0903"], code)
+
 
 def run_bandit(code: str) -> str:
-    """Run bandit security scanner on a code string."""
-    with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
-        f.write(code)
-        tmp_path = f.name
-    try:
-        result = subprocess.run(
-            ["bandit", "-r", tmp_path, "-f", "text"],
-            capture_output=True, text=True, timeout=30
-        )
-        return result.stdout or result.stderr
-    except FileNotFoundError:
-        return "bandit not installed. Run: pip install bandit"
-    finally:
-        os.unlink(tmp_path)
+    return _run_tool(["bandit", "-r", "-f", "text", "-ll"], code)
+
 
 def run_flake8(code: str) -> str:
-    """Run flake8 style checker on a code string."""
-    with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False) as f:
-        f.write(code)
-        tmp_path = f.name
-    try:
-        result = subprocess.run(
-            ["flake8", tmp_path],
-            capture_output=True, text=True, timeout=30
-        )
-        return result.stdout or "No style issues found."
-    except FileNotFoundError:
-        return "flake8 not installed. Run: pip install flake8"
-    finally:
-        os.unlink(tmp_path)
+    return _run_tool(["flake8", "--max-line-length=120", "--select=E,W"], code)
+
+
+def run_all_parallel(code: str) -> dict:
+    """Run pylint + bandit + flake8 simultaneously. ~3x faster than sequential."""
+    results = {"pylint": "", "bandit": "", "flake8": ""}
+    tasks = {
+        "pylint":  (["pylint", "--output-format=text", "--score=no", "--disable=C0114,C0115,C0116,R0903"], code),
+        "bandit":  (["bandit", "-r", "-f", "text", "-ll"], code),
+        "flake8":  (["flake8", "--max-line-length=120", "--select=E,W"], code),
+    }
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        futures = {ex.submit(_run_tool, args, c): name for name, (args, c) in tasks.items()}
+        for fut in as_completed(futures):
+            results[futures[fut]] = fut.result()
+    return results

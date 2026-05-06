@@ -95,7 +95,7 @@ export default function GithubPage() {
 function StatCard({ label, value, color }) {
   return (
     <div className="glass" style={{ borderRadius: "14px", padding: "1rem", textAlign: "center" }}>
-      <div style={{ fontSize: "1.4rem", fontWeight: 700, color }}>{value}</div>
+      <div style={{ fontSize: "1.4rem", fontWeight: 700, color: color }}>{value}</div>
       <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "4px" }}>{label}</div>
     </div>
   );

@@ -108,22 +108,15 @@ def summarize_architecture(req: ArchitectureRequest):
 # ── Technical Debt ────────────────────────────────────────────────────────────
 @router.post("/technical-debt")
 def technical_debt(req: DebtRequest):
-    pylint_out = run_pylint(req.code)
-    bandit_out = run_bandit(req.code)
-    flake8_out = run_flake8(req.code)
+    from analyzers.static_analyzer import run_all_parallel
+    static = run_all_parallel(req.code)
     parsed = parse_code(req.code)
-    quality = calculate_score(pylint_out, bandit_out, flake8_out, function_count=len(parsed.functions), line_count=len(req.code.splitlines()))
-    quality_summary = (
-        f"Score: {quality.score}/10 | Grade: {quality.grade}\n"
-        f"Bugs: {quality.bugs} | Security: {quality.security_issues} | Smells: {quality.code_smells}\n"
-        f"Complexity: {quality.complexity}\n"
-        f"Issues: {'; '.join(quality.issues)}"
-    )
+    quality = calculate_score(static["pylint"], static["bandit"], static["flake8"],
+                              function_count=len(parsed.functions),
+                              line_count=len(req.code.splitlines()))
+    quality_summary = f"Score:{quality.score}/10 Bugs:{quality.bugs} Sec:{quality.security_issues} Smells:{quality.code_smells}"
     debt_report = ask_ai(technical_debt_prompt(req.code, quality_summary))
-    return {
-        "debt_report": debt_report,
-        "quality": asdict(quality),
-    }
+    return {"debt_report": debt_report, "quality": asdict(quality)}
 
 # ── Complexity Refactor ───────────────────────────────────────────────────────
 @router.post("/complexity-refactor")
@@ -205,27 +198,18 @@ def bug_fix_agent(req: BugFixAgentRequest):
 # ── Code Knowledge Graph ──────────────────────────────────────────────────────
 class GraphRequest(BaseModel):
     files: Dict[str, str]
-    include_modules: bool = False   # whether to include external module nodes
+    include_modules: bool = False
 
 @router.post("/knowledge-graph")
 def knowledge_graph(req: GraphRequest):
     graph = build_knowledge_graph(req.files)
-
     nodes = [asdict(n) for n in graph.nodes]
     edges = [asdict(e) for e in graph.edges]
-
-    # Optionally strip external module nodes to reduce noise
     if not req.include_modules:
         module_ids = {n["id"] for n in nodes if n["type"] == "module"}
         nodes = [n for n in nodes if n["type"] != "module"]
         edges = [e for e in edges if e["source"] not in module_ids and e["target"] not in module_ids]
-
-    # AI summary
-    summary = ask_ai(knowledge_graph_summary_prompt(graph.stats))
-
-    return {
-        "nodes": nodes,
-        "edges": edges,
-        "stats": graph.stats,
-        "summary": summary,
-    }
+    # Skip AI call — summary built from stats directly (instant)
+    s = graph.stats
+    summary = f"{s.get('files',0)} files, {s.get('functions',0)} functions, {s.get('classes',0)} classes, {s.get('total_edges',0)} relationships detected."
+    return {"nodes": nodes, "edges": edges, "stats": graph.stats, "summary": summary}

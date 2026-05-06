@@ -107,57 +107,61 @@ def agent_analyze(files: Dict[str, str], max_files: int) -> List[FileScore]:
 
 def agent_patch(files: Dict[str, str], scores: List[FileScore],
                 severity_filter: str) -> List[PatchResult]:
-    """Generate AI patches for the worst-scoring files."""
-    # Sort by score ascending (worst first), take top 3
-    sorted_scores = sorted(scores, key=lambda s: s.score)[:3]
-    patches = []
+    """Generate AI patches for the worst-scoring files — parallel."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    for fs in sorted_scores:
+    # Only patch top 2 worst files to keep it fast
+    sorted_scores = sorted(scores, key=lambda s: s.score)[:2]
+
+    def patch_one(fs):
         code = files.get(fs.filename, "")
         if not code.strip():
-            continue
-        top_issues = "\n".join(f"- {i}" for i in fs.issues[:5])
-        prompt = f"""You are an expert software engineer. Fix the following issues in this code.
+            return None
+        top_issues = "\n".join(f"- {i}" for i in fs.issues[:4])
+        prompt = f"""Fix the top issues in this code. Be concise.
 
-File: {fs.filename}
-Quality Score: {fs.score}/10 (Grade: {fs.grade})
-Issues to fix:
+File: {fs.filename} | Score: {fs.score}/10
+Issues:
 {top_issues}
 
 Code:
 ```
-{code[:3000]}
+{code[:2000]}
 ```
 
-Respond in this exact format:
-EXPLANATION: <one paragraph explaining what you fixed and why>
+Reply ONLY in this format:
+EXPLANATION: <one sentence>
 CONFIDENCE: <high|medium|low>
 FIXED_CODE:
 ```
-<complete fixed code here>
+<fixed code>
 ```"""
         try:
             response = ask_ai(prompt)
             explanation = _extract_between(response, "EXPLANATION:", "CONFIDENCE:").strip()
-            confidence = _extract_between(response, "CONFIDENCE:", "FIXED_CODE:").strip().lower()
-            fixed_code = _extract_code_block(response)
-            if not confidence or confidence not in ("high", "medium", "low"):
+            confidence  = _extract_between(response, "CONFIDENCE:", "FIXED_CODE:").strip().lower()
+            fixed_code  = _extract_code_block(response)
+            if confidence not in ("high", "medium", "low"):
                 confidence = "medium"
-            patches.append(PatchResult(
+            return PatchResult(
                 filename=fs.filename,
                 patch=fixed_code or code,
                 explanation=explanation or "AI applied fixes.",
                 confidence=confidence,
                 issue_description="; ".join(fs.issues[:3]),
-            ))
+            )
         except Exception as e:
-            patches.append(PatchResult(
-                filename=fs.filename,
-                patch=code,
-                explanation=f"Patch generation failed: {e}",
-                confidence="low",
-                issue_description="",
-            ))
+            return PatchResult(filename=fs.filename, patch=code,
+                               explanation=f"Patch failed: {e}", confidence="low",
+                               issue_description="")
+
+    patches = []
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        futures = [ex.submit(patch_one, fs) for fs in sorted_scores]
+        for fut in futures:
+            result = fut.result()
+            if result:
+                patches.append(result)
     return patches
 
 
@@ -195,27 +199,24 @@ def agent_verify(patches: List[PatchResult],
 # ── Agent 4: Report Writer ────────────────────────────────────────────────────
 
 def agent_report(scores: List[FileScore], verifications: List[VerifyResult]) -> str:
-    """Generate executive summary from pipeline results."""
-    improved = [v for v in verifications if v.improved]
-    avg_before = sum(v.before_score for v in verifications) / max(len(verifications), 1)
-    avg_after  = sum(v.after_score  for v in verifications) / max(len(verifications), 1)
+    """Generate executive summary — skip AI if nothing to report."""
+    if not verifications:
+        return f"Static analysis completed on {len(scores)} files. No patches generated."
 
-    summary_input = f"""Pipeline completed on {len(scores)} files.
-Patches generated: {len(verifications)}
-Files improved: {len(improved)}/{len(verifications)}
-Average score before: {avg_before:.1f}/10
-Average score after:  {avg_after:.1f}/10
-Delta: {avg_after - avg_before:+.1f}
+    improved   = [v for v in verifications if v.improved]
+    avg_before = sum(v.before_score for v in verifications) / len(verifications)
+    avg_after  = sum(v.after_score  for v in verifications) / len(verifications)
 
-Per-file results:
-{chr(10).join(f"- {v.filename}: {v.before_score} → {v.after_score} ({'+' if v.delta >= 0 else ''}{v.delta})" for v in verifications)}
+    summary_input = f"""Pipeline: {len(scores)} files analyzed, {len(verifications)} patched, {len(improved)} improved.
+Avg score: {avg_before:.1f} → {avg_after:.1f} ({avg_after - avg_before:+.1f}).
+Files: {', '.join(f"{v.filename}({'+' if v.delta>=0 else ''}{v.delta})" for v in verifications)}
 
-Write a 3-sentence executive summary covering: what was fixed, overall improvement, and top remaining risk."""
+Write 2 sentences: what improved and top remaining risk."""
 
     try:
         return ask_ai(summary_input)
     except Exception:
-        return f"Pipeline processed {len(scores)} files. {len(improved)} files improved. Average score: {avg_before:.1f} → {avg_after:.1f}."
+        return f"Pipeline processed {len(scores)} files. {len(improved)} improved. Score: {avg_before:.1f} → {avg_after:.1f}."
 
 
 # ── Orchestrator endpoint ─────────────────────────────────────────────────────

@@ -9,9 +9,11 @@ const authHeader = () => {
 };
 
 // Auth
-export const authSignup = (name, email, password) => axios.post(`${BASE}/auth/signup`, { name, email, password });
-export const authLogin  = (email, password)       => axios.post(`${BASE}/auth/login`,  { email, password });
-export const authMe     = ()                       => axios.get(`${BASE}/auth/me`, { headers: authHeader() });
+export const authSignup       = (name, email, password) => axios.post(`${BASE}/auth/signup`, { name, email, password });
+export const authLogin        = (email, password)       => axios.post(`${BASE}/auth/login`,  { email, password });
+export const authMe           = ()                       => axios.get(`${BASE}/auth/me`, { headers: authHeader() });
+export const authForgot       = (email)                  => axios.post(`${BASE}/auth/forgot-password`, { email });
+export const authResetPassword = (token, new_password)  => axios.post(`${BASE}/auth/reset-password`, { token, new_password });
 
 // Core
 export const reviewCode    = (code, language = "python") => axios.post(`${BASE}/review/`, { code, language, analyze_functions: true });
@@ -61,3 +63,7 @@ export const listModels        = () => axios.get(`${BASE}/models`);
 // Pipeline
 export const runPipeline = (files, max_files = 5, severity_filter = "all") =>
   axios.post(`${BASE}/pipeline/run`, { files, max_files, severity_filter });
+
+// Intelligence Report
+export const generateReport = (files, repo_name = "project", include_ai_summary = true) =>
+  axios.post(`${BASE}/report/generate`, { files, repo_name, include_ai_summary });

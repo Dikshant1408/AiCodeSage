@@ -123,7 +123,7 @@ export default function PerformancePage() {
 function Stat({ label, value, color }) {
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: "1.2rem", fontWeight: 700, color }}>{value}</div>
+      <div style={{ fontSize: "1.2rem", fontWeight: 700, color: color }}>{value}</div>
       <div style={{ fontSize: "0.65rem", color: "#6b7280" }}>{label}</div>
     </div>
   );

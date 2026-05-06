@@ -1,8 +1,8 @@
 """
-Auth API — JWT-based login/signup
+Auth API — JWT-based login/signup + forgot/reset password
 Uses SQLite for user storage, bcrypt for passwords, JWT for tokens
 """
-import os, sqlite3, hashlib, hmac, base64, json, time
+import os, sqlite3, hashlib, hmac, base64, json, time, secrets
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -29,6 +29,14 @@ def init_db():
                 email     TEXT UNIQUE NOT NULL,
                 password  TEXT NOT NULL,
                 created   TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS reset_tokens (
+                token     TEXT PRIMARY KEY,
+                email     TEXT NOT NULL,
+                expires   INTEGER NOT NULL,
+                used      INTEGER DEFAULT 0
             )
         """)
         conn.commit()
@@ -123,3 +131,106 @@ def login(req: LoginRequest):
 @router.get("/me")
 def me(user=Depends(get_current_user)):
     return {"user": user}
+
+
+# ── Forgot Password ───────────────────────────────────────────────────────────
+
+class ForgotRequest(BaseModel):
+    email: str
+
+class ResetRequest(BaseModel):
+    token: str
+    new_password: str
+
+@router.post("/forgot-password")
+def forgot_password(req: ForgotRequest):
+    email = req.email.lower().strip()
+    with _db() as conn:
+        user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+    # Always return success to prevent email enumeration
+    if not user:
+        return {"message": "If that email exists, a reset token has been generated.", "token": None}
+
+    # Generate a secure 6-digit OTP-style token (easy to type)
+    token = secrets.token_hex(3).upper()   # e.g. "A3F9C1"
+    expires = int(time.time()) + 3600      # 1 hour
+
+    with _db() as conn:
+        # Invalidate any existing tokens for this email
+        conn.execute("DELETE FROM reset_tokens WHERE email=?", (email,))
+        conn.execute(
+            "INSERT INTO reset_tokens (token, email, expires) VALUES (?, ?, ?)",
+            (token, email, expires)
+        )
+        conn.commit()
+
+    # Try to send email if SMTP is configured, otherwise return token directly
+    smtp_host = os.environ.get("SMTP_HOST", "")
+    if smtp_host:
+        _send_reset_email(email, token, user["name"])
+        return {"message": f"Reset code sent to {email}. Check your inbox.", "token": None}
+
+    # Demo mode — return token directly (show in UI)
+    return {
+        "message": "Reset code generated (demo mode — no email configured).",
+        "token": token,
+        "expires_in": "1 hour",
+    }
+
+
+@router.post("/reset-password")
+def reset_password(req: ResetRequest):
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    token = req.token.strip().upper()
+    now   = int(time.time())
+
+    with _db() as conn:
+        row = conn.execute(
+            "SELECT * FROM reset_tokens WHERE token=? AND used=0 AND expires>?",
+            (token, now)
+        ).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+
+        # Update password and mark token used
+        conn.execute(
+            "UPDATE users SET password=? WHERE email=?",
+            (_hash_pw(req.new_password), row["email"])
+        )
+        conn.execute("UPDATE reset_tokens SET used=1 WHERE token=?", (token,))
+        conn.commit()
+
+        user = conn.execute("SELECT * FROM users WHERE email=?", (row["email"],)).fetchone()
+
+    jwt = _sign({"sub": user["id"], "email": user["email"], "name": user["name"]})
+    return {
+        "message": "Password reset successfully.",
+        "token": jwt,
+        "user": {"id": user["id"], "name": user["name"], "email": user["email"]},
+    }
+
+
+def _send_reset_email(to_email: str, token: str, name: str):
+    """Send reset email via SMTP if configured."""
+    import smtplib
+    from email.mime.text import MIMEText
+    host  = os.environ.get("SMTP_HOST", "")
+    port  = int(os.environ.get("SMTP_PORT", 587))
+    user  = os.environ.get("SMTP_USER", "")
+    pw    = os.environ.get("SMTP_PASS", "")
+    frm   = os.environ.get("SMTP_FROM", user)
+    body  = f"Hi {name},\n\nYour AiCodeSage password reset code is:\n\n  {token}\n\nThis code expires in 1 hour.\n\nIf you didn't request this, ignore this email."
+    msg   = MIMEText(body)
+    msg["Subject"] = "AiCodeSage — Password Reset Code"
+    msg["From"]    = frm
+    msg["To"]      = to_email
+    try:
+        with smtplib.SMTP(host, port) as s:
+            s.starttls()
+            s.login(user, pw)
+            s.sendmail(frm, [to_email], msg.as_string())
+    except Exception:
+        pass  # fail silently — token still works

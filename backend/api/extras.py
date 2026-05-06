@@ -280,35 +280,15 @@ def performance_analyze(req: PerformanceRequest):
             seen.add(key)
             unique_issues.append(issue)
 
-    # AI analysis
-    perf_prompt = f"""Analyze this code for performance issues.
+    # Only call AI if static found nothing
+    if unique_issues:
+        ai_analysis = f"Static analysis found {len(unique_issues)} performance issue(s). See details above."
+    else:
+        perf_prompt = f"Find performance issues (Big O, memory, DB bottlenecks) in this code. Max 150 words.\n```\n{req.code[:1200]}\n```"
+        ai_analysis = ask_ai(perf_prompt)
 
-Code:
-```
-{req.code[:3000]}
-```
-
-Focus on:
-1. Time complexity of each function (Big O notation)
-2. Memory usage issues
-3. Inefficient algorithms
-4. Database/IO bottlenecks
-5. Specific optimization suggestions
-
-Be concise and specific."""
-
-    ai_analysis = ask_ai(perf_prompt)
-
-    complexity_counts = {"critical": sum(1 for i in unique_issues if i["severity"] == "critical"),
-                         "warning": sum(1 for i in unique_issues if i["severity"] == "warning")}
-    overall = "High" if complexity_counts["critical"] > 0 else "Medium" if complexity_counts["warning"] > 1 else "Low"
-
-    return {
-        "issues": unique_issues,
-        "functions_analyzed": functions_analyzed,
-        "overall_complexity": overall,
-        "ai_analysis": ai_analysis,
-    }
+    overall = "High" if any(i["severity"] == "critical" for i in unique_issues) else "Medium" if len(unique_issues) > 1 else "Low"
+    return {"issues": unique_issues, "functions_analyzed": functions_analyzed, "overall_complexity": overall, "ai_analysis": ai_analysis}
 
 
 def _find_enclosing_fn(lines, line_idx):

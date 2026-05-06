@@ -45,36 +45,51 @@ async def upload_project(file: UploadFile = File(...)):
     source_files = [
         n for n in zf.namelist()
         if n.endswith(SUPPORTED_EXTENSIONS) and "__MACOSX" not in n
-    ]
+    ][:20]  # hard cap — never analyze more than 20 files
 
     for name in source_files:
         code = zf.read(name).decode("utf-8", errors="ignore")
         if not code.strip():
             continue
         all_files[name] = code
-        file_result = {"error": None, "functions": [], "quality": None, "ai_bugs": "", "static": "", "security": ""}
-        try:
-            result = run_pipeline(code, language=name.rsplit(".", 1)[-1], analyze_functions=False)
-            file_result["functions"] = result.functions_found
-            file_result["classes"] = result.classes_found
-            file_result["quality"] = asdict(result.quality)
-            file_result["ai_bugs"] = result.ai_bugs
-            file_result["static"] = result.static.get("pylint", "")
-            file_result["security"] = result.static.get("bandit", "")
-        except Exception as e:
-            file_result["error"] = str(e)
-        results[name] = file_result
 
     zf.close()
 
-    # Index for RAG chat
+    # ── Static-only analysis (NO AI calls) — runs in parallel ──────────────
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def analyze_file(name, code):
+        result = {"error": None, "functions": [], "quality": None, "ai_bugs": "", "static": "", "security": ""}
+        try:
+            parsed = parse_code(code, name.rsplit(".", 1)[-1])
+            pylint_out = run_pylint(code) if name.endswith(".py") else ""
+            bandit_out = run_bandit(code) if name.endswith(".py") else ""
+            from analyzers.quality_score import calculate_score
+            q = calculate_score(pylint_out, bandit_out, "",
+                                function_count=len(parsed.functions),
+                                line_count=len(code.splitlines()))
+            result["functions"] = [f.name for f in parsed.functions]
+            result["classes"]   = [c.name for c in parsed.classes]
+            result["quality"]   = asdict(q)
+            result["static"]    = pylint_out[:500]
+            result["security"]  = bandit_out[:500]
+        except Exception as e:
+            result["error"] = str(e)
+        return name, result
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {ex.submit(analyze_file, n, c): n for n, c in all_files.items()}
+        for fut in as_completed(futures):
+            name, res = fut.result()
+            results[name] = res
+
+    # Index for RAG chat (background, non-blocking)
     if all_files:
         try:
             index_codebase(session_id, all_files)
         except Exception:
             pass
 
-    # Aggregate quality score
     scores = [r["quality"]["score"] for r in results.values() if r.get("quality")]
     avg_score = round(sum(scores) / len(scores), 1) if scores else 0
 
@@ -83,6 +98,7 @@ async def upload_project(file: UploadFile = File(...)):
         "files_analyzed": len(results),
         "avg_quality_score": avg_score,
         "results": results,
+        "note": "Static analysis only (instant). Use Pipeline page for AI-powered fixes.",
     }
 
 @router.post("/chat")
