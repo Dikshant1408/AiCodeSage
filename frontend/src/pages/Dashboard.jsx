@@ -4,6 +4,14 @@ import { getHistory } from "../api";
 
 const TOOLS = [
   {
+    to: "/summary",
+    icon: "💬",
+    title: "Project Summary",
+    desc: "Upload a ZIP or paste a GitHub URL. Get a plain English explanation of what the project is, what it does, how it works, and what it could become.",
+    color: "#a78bfa",
+    cta: "Summarize →",
+  },
+  {
     to: "/repo",
     icon: "📋",
     title: "Project Report",

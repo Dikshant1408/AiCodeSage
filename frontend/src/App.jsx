@@ -11,6 +11,8 @@ import SecurityPage         from "./pages/SecurityPage";
 import DependencyPage       from "./pages/DependencyPage";
 import GithubPage           from "./pages/GithubPage";
 
+import SummaryPage           from "./pages/SummaryPage";
+
 export default function App({ user, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
   const sideW = collapsed ? 52 : 210;
@@ -22,6 +24,7 @@ export default function App({ user, onLogout }) {
         <Routes>
           <Route path="/"           element={<Dashboard />} />
           <Route path="/repo"       element={<RepoIntelligencePage />} />
+          <Route path="/summary"    element={<SummaryPage />} />
           <Route path="/pipeline"   element={<PipelinePage />} />
           <Route path="/analytics"  element={<AnalyticsPage />} />
           <Route path="/review"     element={<ReviewPage />} />

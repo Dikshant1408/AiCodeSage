@@ -60,6 +60,10 @@ export const learningMode      = (code, level = "beginner") => axios.post(`${BAS
 export const benchmarkModels   = (code, task = "review", models = ["deepseek-coder"]) => axios.post(`${BASE}/extras/benchmark`, { code, task, models });
 export const listModels        = () => axios.get(`${BASE}/models`);
 
+// Project Summary (standalone)
+export const summarizeZip    = (file) => { const f = new FormData(); f.append("file", file); return axios.post(`${BASE}/summary/zip`, f); };
+export const summarizeGithub = (repo_url) => axios.post(`${BASE}/summary/github`, { repo_url });
+
 // Repository Intelligence
 export const analyzeRepoZip    = (file) => { const f = new FormData(); f.append("file", file); return axios.post(`${BASE}/repo/analyze-zip`, f); };
 export const analyzeRepoGithub = (repo_url) => axios.post(`${BASE}/repo/analyze-github`, { repo_url });
