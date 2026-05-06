@@ -11,6 +11,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from analyzers.static_analyzer import run_all_parallel
 from analyzers.quality_score import calculate_score
 from analyzers.cross_file_taint import analyze_cross_file_taint
+from analyzers.deep_issue_extractor import extract_issues, DetailedIssue
+from analyzers.improvement_advisor import generate_improvements, Improvement
 
 
 # ── Data models ───────────────────────────────────────────────────────────────
@@ -82,6 +84,12 @@ class RepoIntelligenceReport:
     # Hotspot summary
     riskiest_files: List[str] = field(default_factory=list)
     lang_breakdown: Dict = field(default_factory=dict)
+
+    # Deep issue list — every error/warning with file + line + fix hint
+    detailed_issues: List[Dict] = field(default_factory=list)
+
+    # Prioritized improvement recommendations
+    improvements: List[Dict] = field(default_factory=list)
 
 
 # ── Complexity analysis ───────────────────────────────────────────────────────
@@ -392,7 +400,7 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
                     function_count=len(parsed.functions),
                     line_count=len(code.splitlines()),
                 )
-                return filename, q, len(parsed.functions), "python"
+                return filename, q, len(parsed.functions), "python", static
 
             # ── JS / TS / JSX / TSX ──
             elif filename.endswith((".js", ".jsx", ".ts", ".tsx")):
@@ -423,7 +431,7 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
                 q = QualityReport(score=score, grade=grade, bugs=bugs,
                                   security_issues=sec, code_smells=smells,
                                   complexity="N/A", issues=issues)
-                return filename, q, fn_count, "javascript"
+                return filename, q, fn_count, "javascript", {}
 
             # ── Java ──
             elif filename.endswith(".java"):
@@ -445,7 +453,7 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
                 q = QualityReport(score=score, grade=grade, bugs=bugs,
                                   security_issues=sec, code_smells=smells,
                                   complexity="N/A", issues=issues)
-                return filename, q, fn_count, "java"
+                return filename, q, fn_count, "java", {}
 
             # ── CSS / SCSS ──
             elif filename.endswith((".css", ".scss", ".sass")):
@@ -459,7 +467,7 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
                 q = QualityReport(score=score, grade=grade, bugs=0,
                                   security_issues=0, code_smells=smells,
                                   complexity="N/A", issues=issues)
-                return filename, q, 0, "css"
+                return filename, q, 0, "css", {}
 
             # ── HTML ──
             elif filename.endswith((".html", ".htm")):
@@ -475,7 +483,7 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
                 q = QualityReport(score=score, grade=grade, bugs=0,
                                   security_issues=0, code_smells=smells,
                                   complexity="N/A", issues=issues)
-                return filename, q, 0, "html"
+                return filename, q, 0, "html", {}
 
             # ── SQL ──
             elif filename.endswith(".sql"):
@@ -490,32 +498,42 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
                 q = QualityReport(score=score, grade=grade, bugs=no_where,
                                   security_issues=0, code_smells=smells,
                                   complexity="N/A", issues=issues)
-                return filename, q, 0, "sql"
+                return filename, q, 0, "sql", {}
 
             else:
                 q = QualityReport(score=7.0, grade="B", bugs=0,
                                   security_issues=0, code_smells=0, complexity="N/A")
-                return filename, q, 0, "other"
+                return filename, q, 0, "other", {}
 
         except Exception:
             q = QualityReport(score=5.0, grade="C", bugs=0,
                               security_issues=0, code_smells=0, complexity="N/A")
-            return filename, q, 0, "unknown"
+            return filename, q, 0, "unknown", {}
 
     file_scores = []
     total_funcs = 0
     lang_breakdown: Dict[str, int] = {}
+    all_detailed_issues: Dict[str, list] = {}
 
     with ThreadPoolExecutor(max_workers=8) as ex:
         futures = {ex.submit(score_file, fn, code): fn for fn, code in files.items()}
         for fut in as_completed(futures):
-            fn, q, nfuncs, lang = fut.result()
+            fn, q, nfuncs, lang, static_out = fut.result()
             file_scores.append({"file": fn, "score": q.score, "grade": q.grade,
                                  "bugs": q.bugs, "security": q.security_issues,
                                  "smells": q.code_smells, "lang": lang,
                                  "issues": q.issues})
             total_funcs += nfuncs
             lang_breakdown[lang] = lang_breakdown.get(lang, 0) + 1
+            # Extract detailed issues
+            code = files[fn]
+            detailed = extract_issues(
+                fn, code,
+                pylint_out=static_out.get("pylint", ""),
+                bandit_out=static_out.get("bandit", ""),
+                flake8_out=static_out.get("flake8", ""),
+            )
+            all_detailed_issues[fn] = detailed
 
     report.total_functions = total_funcs
     report.file_scores = sorted(file_scores, key=lambda x: x["score"])
@@ -608,4 +626,50 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
         risk_scores[p.sink.file]   = risk_scores.get(p.sink.file, 0) + 5
     report.riskiest_files = sorted(risk_scores, key=risk_scores.get, reverse=True)[:5]
 
+    # ── Detailed issues (all files, sorted by severity) ───────────────────────
+    flat_issues = []
+    for fn, issues in all_detailed_issues.items():
+        for issue in issues:
+            flat_issues.append({
+                "file": issue.file,
+                "line": issue.line,
+                "col": issue.col,
+                "severity": issue.severity,
+                "category": issue.category,
+                "code": issue.code,
+                "message": issue.message,
+                "fix_hint": issue.fix_hint,
+                "tool": issue.tool,
+            })
+    # Sort: critical first, then by file
+    sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    flat_issues.sort(key=lambda x: (sev_order.get(x["severity"], 5), x["file"], x["line"]))
+    report.detailed_issues = flat_issues[:200]  # cap at 200
+
+    # ── Improvement recommendations ───────────────────────────────────────────
+    improvements = generate_improvements(
+        files=files,
+        all_issues=all_detailed_issues,
+        complexity_hotspots=report.complexity_hotspots,
+        duplicate_clusters=report.duplicate_clusters,
+        dead_functions=report.dead_functions,
+        coupling_map=report.coupling_map,
+        cross_file_taint=report.cross_file_taint,
+    )
+    report.improvements = [
+        {
+            "priority": imp.priority,
+            "category": imp.category,
+            "title": imp.title,
+            "description": imp.description,
+            "affected_files": imp.affected_files,
+            "affected_lines": imp.affected_lines,
+            "effort": imp.effort,
+            "impact": imp.impact,
+            "how_to_fix": imp.how_to_fix,
+        }
+        for imp in improvements
+    ]
+
     return report
+

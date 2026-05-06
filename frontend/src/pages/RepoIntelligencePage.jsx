@@ -16,7 +16,7 @@ export default function RepoIntelligencePage() {
   const [error, setError]     = useState(null);
   const [activeSection, setActiveSection] = useState("overview");
 
-  const SECTIONS = ["overview", "taint", "complexity", "duplicates", "coupling", "dead code", "architecture", "recurring"];
+  const SECTIONS = ["overview", "issues", "improvements", "taint", "complexity", "duplicates", "coupling", "dead code", "architecture", "recurring"];
 
   const runZip = async () => {
     if (!file) return;
@@ -24,7 +24,7 @@ export default function RepoIntelligencePage() {
     try {
       const res = await analyzeRepoZip(file);
       setResult(res.data);
-      setActiveSection("overview");
+      setActiveSection("issues");
       if (res.data.repo_name) {
         const rec = await getRecurringIssues(res.data.repo_name).catch(() => null);
         if (rec) setRecurring(rec.data);
@@ -39,7 +39,7 @@ export default function RepoIntelligencePage() {
     try {
       const res = await analyzeRepoGithub(githubUrl);
       setResult(res.data);
-      setActiveSection("overview");
+      setActiveSection("issues");
       if (res.data.repo_name) {
         const rec = await getRecurringIssues(res.data.repo_name).catch(() => null);
         if (rec) setRecurring(rec.data);
@@ -189,6 +189,8 @@ export default function RepoIntelligencePage() {
 
               <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem" }}>
                 {activeSection === "overview"      && result && <OverviewSection r={result} />}
+                {activeSection === "issues"        && result && <IssuesSection r={result} />}
+                {activeSection === "improvements"  && result && <ImprovementsSection r={result} />}
                 {activeSection === "taint"         && result && <TaintSection r={result} />}
                 {activeSection === "complexity"    && result && <ComplexitySection r={result} />}
                 {activeSection === "duplicates"    && result && <DuplicatesSection r={result} />}
@@ -494,6 +496,148 @@ function RecurringSection({ r }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const SEV_COLOR = { critical:"#ef4444", high:"#f97316", medium:"#f59e0b", low:"#6b7280", info:"#6366f1" };
+const CAT_ICON  = { security:"🔒", bug:"🐛", style:"✏️", performance:"⚡", maintainability:"🔧", reliability:"🛡️", architecture:"🏗️" };
+
+function IssuesSection({ r }) {
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const issues = r.detailed_issues || [];
+
+  const filtered = issues.filter(i => {
+    if (filter !== "all" && i.severity !== filter) return false;
+    if (search && !i.file.toLowerCase().includes(search.toLowerCase()) &&
+        !i.message.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+  issues.forEach(i => { if (counts[i.severity] !== undefined) counts[i.severity]++; });
+
+  return (
+    <div>
+      {/* Summary bar */}
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+        {[["all", "All", issues.length, "#6366f1"], ["critical", "Critical", counts.critical, "#ef4444"], ["high", "High", counts.high, "#f97316"], ["medium", "Medium", counts.medium, "#f59e0b"], ["low", "Low", counts.low, "#6b7280"]].map(([val, label, count, color]) => (
+          <button key={val} onClick={() => setFilter(val)} style={{ padding: "5px 12px", borderRadius: 8, border: `1px solid ${filter === val ? color : "rgba(255,255,255,0.08)"}`, background: filter === val ? `${color}18` : "rgba(255,255,255,0.03)", color: filter === val ? color : "#6b7280", fontSize: "0.75rem", cursor: "pointer", fontWeight: filter === val ? 700 : 400 }}>
+            {label} <span style={{ opacity: 0.7 }}>{count}</span>
+          </button>
+        ))}
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search file or message..."
+          style={{ marginLeft: "auto", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "5px 10px", color: "#e5e7eb", fontSize: "0.75rem", outline: "none", width: 200 }} />
+      </div>
+
+      {!filtered.length && <p style={{ color: "#4b5563", fontSize: "0.82rem" }}>No issues match the filter.</p>}
+
+      {filtered.map((issue, i) => (
+        <div key={i} style={{ background: `${SEV_COLOR[issue.severity] || "#6b7280"}08`, border: `1px solid ${SEV_COLOR[issue.severity] || "#6b7280"}22`, borderRadius: 12, padding: "0.875rem", marginBottom: "0.6rem" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+            <span style={{ fontSize: "1rem", flexShrink: 0, marginTop: 1 }}>{CAT_ICON[issue.category] || "⚠"}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.4rem" }}>
+                <span style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "#93c5fd" }}>{issue.file}</span>
+                <span style={{ fontSize: "0.68rem", color: "#6b7280" }}>line {issue.line}{issue.col > 0 ? `:${issue.col}` : ""}</span>
+                <span style={{ fontSize: "0.62rem", padding: "1px 7px", borderRadius: 4, background: `${SEV_COLOR[issue.severity]}22`, color: SEV_COLOR[issue.severity], border: `1px solid ${SEV_COLOR[issue.severity]}44`, fontWeight: 700 }}>{issue.severity}</span>
+                <span style={{ fontSize: "0.62rem", padding: "1px 7px", borderRadius: 4, background: "rgba(255,255,255,0.05)", color: "#6b7280" }}>{issue.code}</span>
+                <span style={{ fontSize: "0.62rem", color: "#4b5563" }}>{issue.tool}</span>
+              </div>
+              {/* What */}
+              <p style={{ margin: "0 0 0.4rem", fontSize: "0.82rem", color: "#e5e7eb", fontWeight: 500 }}>{issue.message}</p>
+              {/* How to fix */}
+              <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
+                <span style={{ fontSize: "0.62rem", color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>How to fix → </span>
+                <span style={{ fontSize: "0.75rem", color: "#c7d2fe" }}>{issue.fix_hint}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const EFFORT_COLOR  = { low: "#10b981", medium: "#f59e0b", high: "#ef4444" };
+const IMPACT_COLOR  = { low: "#6b7280", medium: "#3b82f6", high: "#f97316", critical: "#ef4444" };
+const CAT_COLOR     = { security:"#ef4444", reliability:"#f97316", performance:"#f59e0b", maintainability:"#6366f1", architecture:"#8b5cf6" };
+
+function ImprovementsSection({ r }) {
+  const [expanded, setExpanded] = useState({});
+  const improvements = r.improvements || [];
+
+  if (!improvements.length) {
+    return <p style={{ color: "#10b981", fontSize: "0.85rem" }}>✓ No major improvements needed. Great codebase!</p>;
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: "0.65rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "1rem" }}>
+        {improvements.length} prioritized improvement{improvements.length !== 1 ? "s" : ""} — ordered by impact
+      </div>
+      {improvements.map((imp, i) => {
+        const catColor = CAT_COLOR[imp.category] || "#6b7280";
+        const open = expanded[i];
+        return (
+          <div key={i} style={{ background: `${catColor}08`, border: `1px solid ${catColor}22`, borderRadius: 14, marginBottom: "0.875rem", overflow: "hidden" }}>
+            <button onClick={() => setExpanded(e => ({ ...e, [i]: !e[i] }))} style={{ width: "100%", display: "flex", alignItems: "flex-start", gap: "0.875rem", padding: "1rem", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
+              {/* Priority badge */}
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: `${catColor}22`, border: `1px solid ${catColor}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 800, color: catColor, flexShrink: 0 }}>
+                {imp.priority}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.3rem" }}>
+                  <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#e5e7eb" }}>{imp.title}</span>
+                </div>
+                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.62rem", padding: "1px 7px", borderRadius: 4, background: `${catColor}18`, color: catColor, border: `1px solid ${catColor}33`, textTransform: "capitalize" }}>{imp.category}</span>
+                  <span style={{ fontSize: "0.62rem", padding: "1px 7px", borderRadius: 4, background: `${IMPACT_COLOR[imp.impact] || "#6b7280"}18`, color: IMPACT_COLOR[imp.impact] || "#6b7280" }}>impact: {imp.impact}</span>
+                  <span style={{ fontSize: "0.62rem", padding: "1px 7px", borderRadius: 4, background: `${EFFORT_COLOR[imp.effort] || "#6b7280"}18`, color: EFFORT_COLOR[imp.effort] || "#6b7280" }}>effort: {imp.effort}</span>
+                  {imp.affected_files?.length > 0 && <span style={{ fontSize: "0.62rem", color: "#4b5563" }}>{imp.affected_files.length} file{imp.affected_files.length !== 1 ? "s" : ""} affected</span>}
+                </div>
+              </div>
+              <span style={{ color: "#4b5563", fontSize: "0.75rem", flexShrink: 0 }}>{open ? "▲" : "▼"}</span>
+            </button>
+
+            {open && (
+              <div style={{ padding: "0 1rem 1rem", borderTop: `1px solid ${catColor}18` }}>
+                {/* What */}
+                <div style={{ marginBottom: "0.875rem" }}>
+                  <div style={{ fontSize: "0.62rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.3rem" }}>What's the problem</div>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "#d1d5db", lineHeight: 1.6, whiteSpace: "pre-line" }}>{imp.description}</p>
+                </div>
+
+                {/* Why */}
+                <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 8, padding: "0.6rem 0.875rem", marginBottom: "0.875rem" }}>
+                  <div style={{ fontSize: "0.62rem", color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.25rem" }}>Why it matters</div>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#fca5a5", lineHeight: 1.5 }}>{imp.why_it_matters}</p>
+                </div>
+
+                {/* How to fix */}
+                <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 8, padding: "0.6rem 0.875rem", marginBottom: imp.affected_lines?.length ? "0.875rem" : 0 }}>
+                  <div style={{ fontSize: "0.62rem", color: "#818cf8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.25rem" }}>How to fix</div>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#c7d2fe", lineHeight: 1.6, whiteSpace: "pre-line" }}>{imp.how_to_fix}</p>
+                </div>
+
+                {/* Affected locations */}
+                {imp.affected_lines?.length > 0 && (
+                  <div style={{ marginTop: "0.875rem" }}>
+                    <div style={{ fontSize: "0.62rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.4rem" }}>Affected locations</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
+                      {imp.affected_lines.map((loc, j) => (
+                        <span key={j} style={{ fontFamily: "monospace", fontSize: "0.68rem", color: "#93c5fd", background: "rgba(147,197,253,0.08)", padding: "2px 8px", borderRadius: 5 }}>{loc}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
