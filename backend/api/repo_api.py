@@ -93,17 +93,21 @@ Key file contents:
 
 Write a developer summary with these exact sections:
 
-WHAT IT IS: One sentence describing what this project is.
+WHAT IT IS: One clear sentence — what type of application is this and what problem does it solve?
 
-WHAT IT DOES: 2-3 sentences explaining the main functionality.
+WHAT IT DOES: 3-4 sentences explaining the main features and functionality a user would experience.
 
-TECH STACK: List the technologies used and why.
+HOW IT WORKS: 2-3 sentences on the technical approach — how data flows, what the main components do, how frontend and backend connect (if applicable).
 
-PROJECT STRUCTURE: Briefly describe how the code is organized (2-3 sentences).
+TECH STACK: List each technology and what it's used for in this project specifically.
 
-CURRENT STATE: Is this a prototype, MVP, or production-ready? What's missing?
+PROJECT STRUCTURE: How is the code organized? What are the main folders/files and their purpose?
 
-Keep it practical and honest. Max 200 words total."""
+CURRENT STATE: Be honest — is this a prototype, MVP, or production-ready? What key things are missing (auth, tests, error handling, deployment config, etc.)?
+
+WHAT TO BUILD NEXT: The 3 most important things a developer should add or improve to make this project better.
+
+Be specific to THIS project. Use the actual file names and code you can see. Max 300 words."""
 
     try:
         ai_summary = ask_ai(prompt)

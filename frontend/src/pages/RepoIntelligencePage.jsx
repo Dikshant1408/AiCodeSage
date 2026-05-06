@@ -122,11 +122,13 @@ function ProjectSummarySection({ r }) {
     return m ? m[1].trim() : "";
   };
   const ai = s.ai_summary || "";
-  const whatItIs    = parse(ai, "WHAT IT IS") || ai.split("\n")[0] || "";
-  const whatItDoes  = parse(ai, "WHAT IT DOES");
-  const techStack   = parse(ai, "TECH STACK");
-  const structure   = parse(ai, "PROJECT STRUCTURE");
+  const whatItIs     = parse(ai, "WHAT IT IS") || ai.split("\n")[0] || "";
+  const whatItDoes   = parse(ai, "WHAT IT DOES");
+  const howItWorks   = parse(ai, "HOW IT WORKS");
+  const techStack    = parse(ai, "TECH STACK");
+  const structure    = parse(ai, "PROJECT STRUCTURE");
   const currentState = parse(ai, "CURRENT STATE");
+  const whatNext     = parse(ai, "WHAT TO BUILD NEXT");
 
   return (
     <div style={{ marginBottom: "2rem" }}>
@@ -149,19 +151,20 @@ function ProjectSummarySection({ r }) {
 
         {/* AI narrative */}
         {whatItIs && <p style={{ margin: "0 0 0.75rem", fontSize: "1rem", color: "#e5e7eb", fontWeight: 500, lineHeight: 1.5 }}>{whatItIs}</p>}
-        {whatItDoes && <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "#9ca3af", lineHeight: 1.6 }}>{whatItDoes}</p>}
+        {whatItDoes && <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "#9ca3af", lineHeight: 1.6 }}>{whatItDoes}</p>}
+        {howItWorks && <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "#9ca3af", lineHeight: 1.6 }}>{howItWorks}</p>}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "0.75rem" }}>
           {techStack && (
             <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "0.875rem" }}>
               <div style={{ fontSize: "0.65rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>Tech Stack</div>
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "#d1d5db", lineHeight: 1.5 }}>{techStack}</p>
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#d1d5db", lineHeight: 1.6, whiteSpace: "pre-line" }}>{techStack}</p>
             </div>
           )}
           {structure && (
             <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "0.875rem" }}>
-              <div style={{ fontSize: "0.65rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>Structure</div>
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "#d1d5db", lineHeight: 1.5 }}>{structure}</p>
+              <div style={{ fontSize: "0.65rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>Project Structure</div>
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#d1d5db", lineHeight: 1.6, whiteSpace: "pre-line" }}>{structure}</p>
             </div>
           )}
         </div>
@@ -169,7 +172,14 @@ function ProjectSummarySection({ r }) {
         {currentState && (
           <div style={{ marginTop: "1rem", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 10, padding: "0.875rem" }}>
             <div style={{ fontSize: "0.65rem", color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>Current State</div>
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "#fcd34d", lineHeight: 1.5 }}>{currentState}</p>
+            <p style={{ margin: 0, fontSize: "0.8rem", color: "#fcd34d", lineHeight: 1.5, whiteSpace: "pre-line" }}>{currentState}</p>
+          </div>
+        )}
+
+        {whatNext && (
+          <div style={{ marginTop: "1rem", background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 10, padding: "0.875rem" }}>
+            <div style={{ fontSize: "0.65rem", color: "#10b981", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.4rem" }}>What to Build Next</div>
+            <p style={{ margin: 0, fontSize: "0.8rem", color: "#6ee7b7", lineHeight: 1.6, whiteSpace: "pre-line" }}>{whatNext}</p>
           </div>
         )}
 
