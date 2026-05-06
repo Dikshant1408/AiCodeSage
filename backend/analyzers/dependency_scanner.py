@@ -66,13 +66,26 @@ def parse_package_json(content: str) -> List[Dict[str, str]]:
     return packages
 
 
+def _fetch_vuln_details(vuln_id: str) -> dict:
+    """Fetch full details for a single CVE from OSV."""
+    try:
+        resp = _requests.get(
+            f"https://api.osv.dev/v1/vulns/{vuln_id}",
+            timeout=8,
+        )
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception:
+        pass
+    return {}
+
+
 def check_osv(packages: List[Dict[str, str]], ecosystem: str) -> List[Vulnerability]:
     """Query OSV API for vulnerabilities. Returns list of Vulnerability."""
     if not _HAS_REQUESTS or not packages:
         return []
 
-    vulns = []
-    # OSV batch query
+    # Step 1: batch query to get vuln IDs
     queries = []
     for pkg in packages:
         if pkg["version"]:
@@ -91,54 +104,96 @@ def check_osv(packages: List[Dict[str, str]], ecosystem: str) -> List[Vulnerabil
         )
         if resp.status_code != 200:
             return []
+        batch_data = resp.json()
+    except Exception:
+        return []
 
-        data = resp.json()
-        for i, result in enumerate(data.get("results", [])):
-            pkg = packages[i]
-            for vuln in result.get("vulns", []):
-                # Severity from CVSS
-                severity = "MEDIUM"
-                for sev in vuln.get("severity", []):
-                    raw_score = sev.get("score", "")
-                    try:
-                        # CVSS v3 score can be "5.3" or a full vector string
-                        score_str = raw_score.split("/")[0] if "/" in raw_score else raw_score
-                        score = float(score_str)
-                        if score >= 9.0:   severity = "CRITICAL"
-                        elif score >= 7.0: severity = "HIGH"
-                        elif score >= 4.0: severity = "MEDIUM"
-                        else:              severity = "LOW"
-                    except (ValueError, TypeError):
-                        pass
+    # Collect all (pkg_index, vuln_id) pairs
+    id_pairs = []
+    for i, result in enumerate(batch_data.get("results", [])):
+        for vuln in result.get("vulns", []):
+            vid = vuln.get("id", "")
+            if vid:
+                id_pairs.append((i, vid))
 
-                # Description — try summary first, then details
-                description = (
-                    vuln.get("summary") or
-                    vuln.get("details", "")[:200] or
-                    "No description available"
-                ).strip()
+    if not id_pairs:
+        return []
 
-                # Find fixed version
-                fixed = ""
-                for affected in vuln.get("affected", []):
-                    for rng in affected.get("ranges", []):
-                        for event in rng.get("events", []):
-                            if "fixed" in event:
-                                fixed = event["fixed"]
-                                break
-                    if fixed:
+    # Step 2: fetch full details for each CVE in parallel
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    details_map = {}
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futures = {ex.submit(_fetch_vuln_details, vid): (idx, vid) for idx, vid in id_pairs}
+        for fut in as_completed(futures):
+            idx, vid = futures[fut]
+            details_map[(idx, vid)] = fut.result()
+
+    # Step 3: build Vulnerability objects with real descriptions
+    vulns = []
+    for idx, vid in id_pairs:
+        pkg = packages[idx]
+        detail = details_map.get((idx, vid), {})
+
+        # Severity from CVSS
+        severity = "MEDIUM"
+        for sev in detail.get("severity", []):
+            raw_score = sev.get("score", "")
+            try:
+                # CVSS vector like "CVSS:3.1/AV:N/AC:H/..." — extract base score
+                if "CVSS" in raw_score:
+                    # Calculate from vector or use database score
+                    parts = raw_score.split("/")
+                    # Try to find AV, AC etc. for rough scoring
+                    # Simpler: use the type to determine severity
+                    sev_type = sev.get("type", "")
+                    if "CRITICAL" in sev_type.upper():
+                        severity = "CRITICAL"
+                    elif "HIGH" in sev_type.upper():
+                        severity = "HIGH"
+                else:
+                    score = float(raw_score)
+                    if score >= 9.0:   severity = "CRITICAL"
+                    elif score >= 7.0: severity = "HIGH"
+                    elif score >= 4.0: severity = "MEDIUM"
+                    else:              severity = "LOW"
+            except (ValueError, TypeError):
+                pass
+
+        # Also check database_specific severity
+        for db in detail.get("database_specific", {}).get("severity", []):
+            sev_map = {"CRITICAL": "CRITICAL", "HIGH": "HIGH", "MODERATE": "MEDIUM", "LOW": "LOW"}
+            if isinstance(db, str) and db.upper() in sev_map:
+                severity = sev_map[db.upper()]
+                break
+
+        # Description
+        description = (
+            detail.get("summary") or
+            (detail.get("details", "")[:300].split("\n")[0] if detail.get("details") else "") or
+            "No description available"
+        ).strip()
+
+        # Fixed version
+        fixed = ""
+        for affected in detail.get("affected", []):
+            for rng in affected.get("ranges", []):
+                for event in rng.get("events", []):
+                    if "fixed" in event:
+                        fixed = event["fixed"]
                         break
+                if fixed:
+                    break
+            if fixed:
+                break
 
-                vulns.append(Vulnerability(
-                    package=pkg["name"],
-                    version=pkg["version"] or "unpinned",
-                    vuln_id=vuln.get("id", ""),
-                    severity=severity,
-                    summary=description,
-                    fixed_version=fixed,
-                ))
-    except Exception as e:
-        pass
+        vulns.append(Vulnerability(
+            package=pkg["name"],
+            version=pkg["version"] or "unpinned",
+            vuln_id=vid,
+            severity=severity,
+            summary=description,
+            fixed_version=fixed,
+        ))
 
     return vulns
 
