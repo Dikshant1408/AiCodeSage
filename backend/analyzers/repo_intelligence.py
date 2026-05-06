@@ -96,26 +96,50 @@ class RepoIntelligenceReport:
 
 def _analyze_complexity(filename: str, code: str) -> List[FunctionComplexity]:
     results = []
-    try:
-        tree = ast.parse(code)
+    # Python — AST-based
+    if filename.endswith(".py"):
+        try:
+            tree = ast.parse(code)
+            for node in ast.walk(tree):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                complexity = 1
+                for child in ast.walk(node):
+                    if isinstance(child, (ast.If, ast.While, ast.For, ast.ExceptHandler,
+                                           ast.With, ast.Assert, ast.comprehension,
+                                           ast.BoolOp, ast.IfExp)):
+                        complexity += 1
+                end = getattr(node, "end_lineno", node.lineno + 10)
+                loc = end - node.lineno + 1
+                results.append(FunctionComplexity(
+                    file=filename, function=node.name,
+                    complexity=complexity, line=node.lineno, lines_of_code=loc,
+                ))
+        except SyntaxError:
+            pass
+    # JS/TS — regex-based
+    elif filename.endswith((".js", ".jsx", ".ts", ".tsx")):
         lines = code.splitlines()
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            complexity = 1
-            for child in ast.walk(node):
-                if isinstance(child, (ast.If, ast.While, ast.For, ast.ExceptHandler,
-                                       ast.With, ast.Assert, ast.comprehension,
-                                       ast.BoolOp, ast.IfExp)):
-                    complexity += 1
-            end = getattr(node, "end_lineno", node.lineno + 10)
-            loc = end - node.lineno + 1
-            results.append(FunctionComplexity(
-                file=filename, function=node.name,
-                complexity=complexity, line=node.lineno, lines_of_code=loc,
-            ))
-    except SyntaxError:
-        pass
+        # Match: function Foo, export function Foo, const Foo = (, export const Foo = (
+        fn_pattern = re.compile(
+            r'(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+(\w+)'
+            r'|(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\('
+        )
+        for i, line in enumerate(lines, 1):
+            m = fn_pattern.search(line)
+            if m:
+                name = m.group(1) or m.group(2)
+                if not name or name in ("if", "for", "while", "switch"):
+                    continue
+                block = "\n".join(lines[i-1:i+30])
+                complexity = (1 + block.count(" if ") + block.count(" else ")
+                              + block.count(" for ") + block.count(" while ")
+                              + block.count(" && ") + block.count(" || ")
+                              + block.count("?.") + block.count(" ? "))
+                results.append(FunctionComplexity(
+                    file=filename, function=name,
+                    complexity=complexity, line=i, lines_of_code=min(30, len(lines)-i+1),
+                ))
     return results
 
 
@@ -139,25 +163,47 @@ def _jaccard(a: str, b: str) -> float:
 def _extract_all_functions(files: Dict[str, str]) -> List[Dict]:
     funcs = []
     for filename, code in files.items():
-        if not filename.endswith(".py"):
-            continue
-        try:
-            tree = ast.parse(code)
-            src_lines = code.splitlines()
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    end = getattr(node, "end_lineno", node.lineno + 10)
-                    body = "\n".join(src_lines[node.lineno - 1:end])
+        # Python — AST
+        if filename.endswith(".py"):
+            try:
+                tree = ast.parse(code)
+                src_lines = code.splitlines()
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        end = getattr(node, "end_lineno", node.lineno + 10)
+                        body = "\n".join(src_lines[node.lineno - 1:end])
+                        if len(body.split()) < 5:
+                            continue
+                        funcs.append({
+                            "file": filename, "function": node.name,
+                            "line": node.lineno, "body": body,
+                            "normalized": _normalize(body),
+                            "hash": hashlib.md5(_normalize(body).encode()).hexdigest(),
+                        })
+            except SyntaxError:
+                pass
+        # JS/TS — regex
+        elif filename.endswith((".js", ".jsx", ".ts", ".tsx")):
+            fn_pattern = re.compile(
+                r'(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+(\w+)'
+                r'|(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\('
+            )
+            lines = code.splitlines()
+            for i, line in enumerate(lines):
+                m = fn_pattern.search(line)
+                if m:
+                    name = m.group(1) or m.group(2)
+                    if not name or name in ("if", "for", "while"):
+                        continue
+                    body = "\n".join(lines[i:i+20])
                     if len(body.split()) < 5:
-                        continue  # skip trivial functions
+                        continue
                     funcs.append({
-                        "file": filename, "function": node.name,
-                        "line": node.lineno, "body": body,
+                        "file": filename, "function": name,
+                        "line": i + 1, "body": body,
                         "normalized": _normalize(body),
                         "hash": hashlib.md5(_normalize(body).encode()).hexdigest(),
                     })
-        except SyntaxError:
-            pass
     return funcs
 
 def _find_cross_file_duplicates(files: Dict[str, str], threshold: float = 0.75) -> List[DuplicateCluster]:
@@ -198,40 +244,42 @@ def _find_cross_file_duplicates(files: Dict[str, str], threshold: float = 0.75) 
 # ── Dependency coupling ───────────────────────────────────────────────────────
 
 def _build_coupling_map(files: Dict[str, str]) -> List[FileCoupling]:
-    # Map: module_name → filename
     file_modules: Dict[str, str] = {}
     for filename in files:
         base = filename.replace("/", ".").replace("\\", ".")
-        for ext in (".py", ".js", ".ts"):
+        for ext in (".py", ".js", ".ts", ".jsx", ".tsx"):
             if base.endswith(ext):
                 base = base[:-len(ext)]
         parts = base.split(".")
-        file_modules[parts[-1]] = filename  # last part = module name
+        file_modules[parts[-1]] = filename
 
     import_counts: Dict[str, int] = {f: 0 for f in files}
     imports_out: Dict[str, int] = {f: 0 for f in files}
 
     for filename, code in files.items():
-        if not filename.endswith(".py"):
-            continue
-        try:
-            tree = ast.parse(code)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
+        if filename.endswith(".py"):
+            try:
+                tree = ast.parse(code)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        for alias in node.names:
+                            imports_out[filename] = imports_out.get(filename, 0) + 1
+                            mod = alias.name.split(".")[-1]
+                            if mod in file_modules:
+                                import_counts[file_modules[mod]] = import_counts.get(file_modules[mod], 0) + 1
+                    elif isinstance(node, ast.ImportFrom) and node.module:
                         imports_out[filename] = imports_out.get(filename, 0) + 1
-                        mod = alias.name.split(".")[-1]
+                        mod = node.module.split(".")[-1]
                         if mod in file_modules:
-                            target = file_modules[mod]
-                            import_counts[target] = import_counts.get(target, 0) + 1
-                elif isinstance(node, ast.ImportFrom) and node.module:
-                    imports_out[filename] = imports_out.get(filename, 0) + 1
-                    mod = node.module.split(".")[-1]
-                    if mod in file_modules:
-                        target = file_modules[mod]
-                        import_counts[target] = import_counts.get(target, 0) + 1
-        except SyntaxError:
-            pass
+                            import_counts[file_modules[mod]] = import_counts.get(file_modules[mod], 0) + 1
+            except SyntaxError:
+                pass
+        elif filename.endswith((".js", ".jsx", ".ts", ".tsx")):
+            for m in re.finditer(r"(?:import|require)\s*.*?['\"]([./][^'\"]+)['\"]", code):
+                imports_out[filename] = imports_out.get(filename, 0) + 1
+                mod = m.group(1).split("/")[-1].split(".")[0]
+                if mod in file_modules:
+                    import_counts[file_modules[mod]] = import_counts.get(file_modules[mod], 0) + 1
 
     result = []
     max_imported = max(import_counts.values(), default=1) or 1
@@ -249,36 +297,50 @@ def _build_coupling_map(files: Dict[str, str]) -> List[FileCoupling]:
 # ── Dead code detection ───────────────────────────────────────────────────────
 
 def _find_dead_code(files: Dict[str, str]) -> List[DeadFunction]:
-    # Collect all defined functions
-    defined: Dict[str, Tuple[str, int]] = {}  # func_name → (file, line)
+    defined: Dict[str, Tuple[str, int]] = {}
     called: Set[str] = set()
 
     for filename, code in files.items():
-        if not filename.endswith(".py"):
-            continue
-        try:
-            tree = ast.parse(code)
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    if not node.name.startswith("_"):  # skip private
-                        defined[node.name] = (filename, node.lineno)
-                elif isinstance(node, ast.Call):
-                    if isinstance(node.func, ast.Name):
-                        called.add(node.func.id)
-                    elif isinstance(node.func, ast.Attribute):
-                        called.add(node.func.attr)
-        except SyntaxError:
-            pass
+        # Python
+        if filename.endswith(".py"):
+            try:
+                tree = ast.parse(code)
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if not node.name.startswith("_"):
+                            defined[node.name] = (filename, node.lineno)
+                    elif isinstance(node, ast.Call):
+                        if isinstance(node.func, ast.Name):
+                            called.add(node.func.id)
+                        elif isinstance(node.func, ast.Attribute):
+                            called.add(node.func.attr)
+            except SyntaxError:
+                pass
+        # JS/TS
+        elif filename.endswith((".js", ".jsx", ".ts", ".tsx")):
+            fn_pattern = re.compile(
+                r'(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+(\w+)'
+                r'|(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\('
+            )
+            for m in fn_pattern.finditer(code):
+                name = m.group(1) or m.group(2)
+                if name and not name.startswith("_"):
+                    line = code[:m.start()].count("\n") + 1
+                    defined[name] = (filename, line)
+            # Find all identifiers used as calls
+            for m in re.finditer(r'(\w+)\s*\(', code):
+                called.add(m.group(1))
 
     dead = []
-    skip = {"main", "setUp", "tearDown", "test_", "__init__", "run"}
+    skip = {"main", "setUp", "tearDown", "test_", "__init__", "run", "render",
+            "export", "default", "constructor", "componentDidMount", "useEffect"}
     for fname, (ffile, fline) in defined.items():
         if fname not in called and not any(fname.startswith(s) for s in skip):
             dead.append(DeadFunction(
                 file=ffile, function=fname, line=fline,
                 reason="Defined but never called in this repository",
             ))
-    return dead[:20]  # cap at 20
+    return dead[:20]
 
 
 # ── Architecture layer detection ──────────────────────────────────────────────
@@ -325,14 +387,31 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
     # ── Parallel: static analysis per file ───────────────────────────────────
     def score_file(filename, code):
         try:
-            static = run_all_parallel(code)
             from analyzers.code_parser import parse_code
-            parsed = parse_code(code, "python")
-            q = calculate_score(
-                static["pylint"], static["bandit"], static["flake8"],
-                function_count=len(parsed.functions),
-                line_count=len(code.splitlines()),
-            )
+            ext = filename.rsplit(".", 1)[-1]
+            parsed = parse_code(code, ext)
+            # Static analysis only for Python
+            if filename.endswith(".py"):
+                static = run_all_parallel(code)
+                q = calculate_score(
+                    static["pylint"], static["bandit"], static["flake8"],
+                    function_count=len(parsed.functions),
+                    line_count=len(code.splitlines()),
+                )
+            else:
+                # JS/TS — score based on basic metrics only
+                from analyzers.quality_score import QualityReport
+                fn_count = len(parsed.functions)
+                loc = len(code.splitlines())
+                # Rough heuristics for JS
+                import re as _re
+                console_logs = len(_re.findall(r'console\.log', code))
+                todos = len(_re.findall(r'TODO|FIXME|HACK', code))
+                smells = console_logs + todos
+                score = round(max(0, min(10, 8 - smells * 0.3)), 1)
+                grade = "A" if score >= 8 else "B" if score >= 7 else "C" if score >= 6 else "D" if score >= 5 else "F"
+                q = QualityReport(score=score, grade=grade, bugs=0,
+                                  security_issues=0, code_smells=smells, complexity="N/A")
             return filename, q, len(parsed.functions)
         except Exception:
             from analyzers.quality_score import QualityReport
@@ -359,7 +438,7 @@ def analyze_repository(files: Dict[str, str]) -> RepoIntelligenceReport:
 
     # ── Complexity hotspots ───────────────────────────────────────────────────
     all_complexity = []
-    for filename, code in py_files.items():
+    for filename, code in files.items():  # all files, not just Python
         all_complexity.extend(_analyze_complexity(filename, code))
     all_complexity.sort(key=lambda x: x.complexity, reverse=True)
     report.complexity_hotspots = [
