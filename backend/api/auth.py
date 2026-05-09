@@ -3,6 +3,7 @@ Auth API — JWT-based login/signup + forgot/reset password
 Uses SQLite for user storage, bcrypt for passwords, JWT for tokens
 """
 import os, sqlite3, hashlib, hmac, base64, json, time, secrets
+import re
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -12,6 +13,7 @@ bearer = HTTPBearer(auto_error=False)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "users.db")
 SECRET   = os.environ.get("JWT_SECRET", "aicodesage-secret-change-in-prod")
+EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 # ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -108,7 +110,7 @@ def signup(req: SignupRequest):
 
     if not name:
         raise HTTPException(status_code=400, detail="Name is required")
-    if not email or "@" not in email or email.startswith("@") or email.endswith("@"):
+    if not email or not EMAIL_RE.match(email) or email.count("@") != 1:
         raise HTTPException(status_code=400, detail="Invalid email")
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")

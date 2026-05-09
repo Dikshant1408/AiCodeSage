@@ -33,7 +33,7 @@ def normalize_github_url(repo_url: str) -> str:
         raise ValueError("Invalid GitHub repository URL")
 
     owner = parts[0]
-    repo = parts[1].replace(".git", "")
+    repo = parts[1][:-4] if parts[1].endswith(".git") else parts[1]
     if not owner or not repo:
         raise ValueError("Invalid GitHub repository URL")
 
