@@ -17,7 +17,10 @@ def normalize_github_url(repo_url: str) -> str:
         raise ValueError("GitHub URL is required")
 
     if raw.startswith("git@github.com:"):
-        raw = "https://github.com/" + raw.split("git@github.com:", 1)[1]
+        ssh_path = raw[len("git@github.com:"):].strip()
+        if "/" not in ssh_path:
+            raise ValueError("Invalid GitHub repository URL")
+        raw = f"https://github.com/{ssh_path}"
     elif not raw.startswith(("http://", "https://")):
         raw = "https://" + raw
 
@@ -33,7 +36,7 @@ def normalize_github_url(repo_url: str) -> str:
         raise ValueError("Invalid GitHub repository URL")
 
     owner = parts[0]
-    repo = parts[1][:-4] if parts[1].endswith(".git") else parts[1]
+    repo = parts[1].removesuffix(".git")
     if not owner or not repo:
         raise ValueError("Invalid GitHub repository URL")
 

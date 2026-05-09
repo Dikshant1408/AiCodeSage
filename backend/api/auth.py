@@ -3,7 +3,6 @@ Auth API — JWT-based login/signup + forgot/reset password
 Uses SQLite for user storage, bcrypt for passwords, JWT for tokens
 """
 import os, sqlite3, hashlib, hmac, base64, json, time, secrets
-import re
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -13,7 +12,6 @@ bearer = HTTPBearer(auto_error=False)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "users.db")
 SECRET   = os.environ.get("JWT_SECRET", "aicodesage-secret-change-in-prod")
-EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 # ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -84,6 +82,18 @@ def _check_pw(pw: str, stored: str) -> bool:
     except Exception:
         return False
 
+def _is_valid_email(email: str) -> bool:
+    if not email or any(ch.isspace() for ch in email):
+        return False
+    local, sep, domain = email.partition("@")
+    if not sep or not local or not domain:
+        return False
+    if "@" in local or "@" in domain:
+        return False
+    if "." not in domain or domain.startswith(".") or domain.endswith("."):
+        return False
+    return True
+
 # ── Dependency ────────────────────────────────────────────────────────────────
 
 def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer)):
@@ -110,7 +120,7 @@ def signup(req: SignupRequest):
 
     if not name:
         raise HTTPException(status_code=400, detail="Name is required")
-    if not email or not EMAIL_RE.match(email) or email.count("@") != 1:
+    if not _is_valid_email(email):
         raise HTTPException(status_code=400, detail="Invalid email")
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
