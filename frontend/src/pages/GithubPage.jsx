@@ -12,10 +12,11 @@ export default function GithubPage() {
   const [chatLoading, setChatLoading] = useState(false);
 
   const handleAnalyze = async () => {
-    if (!url.trim()) return;
+    const cleanUrl = url.trim();
+    if (!cleanUrl) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const res = await analyzeGithub(url.trim());
+      const res = await analyzeGithub(cleanUrl);
       if (res.data.error) setError(res.data.error);
       else setResult(res.data);
     } catch (e) {

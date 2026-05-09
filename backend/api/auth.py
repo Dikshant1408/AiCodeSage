@@ -102,18 +102,24 @@ class LoginRequest(BaseModel):
 
 @router.post("/signup")
 def signup(req: SignupRequest):
-    if len(req.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
-    if not req.email or "@" not in req.email:
+    name = req.name.strip()
+    email = req.email.lower().strip()
+    password = req.password or ""
+
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
+    if not email or "@" not in email or email.startswith("@") or email.endswith("@"):
         raise HTTPException(status_code=400, detail="Invalid email")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     try:
         with _db() as conn:
             conn.execute(
                 "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-                (req.name.strip(), req.email.lower().strip(), _hash_pw(req.password))
+                (name, email, _hash_pw(password))
             )
             conn.commit()
-            user = conn.execute("SELECT * FROM users WHERE email=?", (req.email.lower().strip(),)).fetchone()
+            user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=409, detail="Email already registered")
     token = _sign({"sub": user["id"], "email": user["email"], "name": user["name"]})
@@ -121,9 +127,14 @@ def signup(req: SignupRequest):
 
 @router.post("/login")
 def login(req: LoginRequest):
+    email = req.email.lower().strip()
+    password = req.password or ""
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password are required")
+
     with _db() as conn:
-        user = conn.execute("SELECT * FROM users WHERE email=?", (req.email.lower().strip(),)).fetchone()
-    if not user or not _check_pw(req.password, user["password"]):
+        user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+    if not user or not _check_pw(password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = _sign({"sub": user["id"], "email": user["email"], "name": user["name"]})
     return {"token": token, "user": {"id": user["id"], "name": user["name"], "email": user["email"]}}

@@ -31,11 +31,12 @@ export default function SummaryPage() {
   const [error, setError]     = useState(null);
 
   const run = async () => {
+    const cleanGithubUrl = githubUrl.trim();
     setLoading(true); setError(null); setResult(null);
     try {
       const res = mode === "zip"
         ? await summarizeZip(file)
-        : await summarizeGithub(githubUrl);
+        : await summarizeGithub(cleanGithubUrl);
       if (res.data.error) setError(res.data.error);
       else setResult(res.data);
     } catch (e) { setError(e.response?.data?.detail || e.message); }
@@ -86,7 +87,7 @@ export default function SummaryPage() {
             style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 9, padding: "10px 14px", color: "#e5e7eb", fontSize: "0.85rem", outline: "none", boxSizing: "border-box" }} />
         )}
 
-        <button onClick={run} disabled={loading || (mode === "zip" ? !file : !githubUrl)}
+        <button onClick={run} disabled={loading || (mode === "zip" ? !file : !githubUrl.trim())}
           style={{ marginTop: "1rem", padding: "11px 28px", border: "none", borderRadius: 10, fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "not-allowed" : "pointer", background: loading ? "rgba(99,102,241,0.15)" : "linear-gradient(135deg,#4f46e5,#7c3aed)", color: loading ? "#6b7280" : "white" }}>
           {loading ? "Reading project..." : "Summarize Project →"}
         </button>

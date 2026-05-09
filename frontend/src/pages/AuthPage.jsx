@@ -30,11 +30,16 @@ export default function AuthPage({ onAuth }) {
   // ── Login / Signup ──────────────────────────────────────────────────────────
   const handleAuth = async (e) => {
     e.preventDefault();
+    const cleanEmail = email.trim();
+    const cleanName = name.trim();
+    if (mode === "signup" && !cleanName) { setError("Name is required"); return; }
+    if (!cleanEmail) { setError("Email is required"); return; }
+
     setLoading(true); setError(null);
     try {
       const res = mode === "login"
-        ? await authLogin(email, password)
-        : await authSignup(name, email, password);
+        ? await authLogin(cleanEmail, password)
+        : await authSignup(cleanName, cleanEmail, password);
       localStorage.setItem("acs_token", res.data.token);
       localStorage.setItem("acs_user",  JSON.stringify(res.data.user));
       onAuth(res.data.user);
@@ -96,7 +101,7 @@ export default function AuthPage({ onAuth }) {
             <>
               <div style={{ display: "flex", background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: "3px", marginBottom: "1.75rem" }}>
                 {["login", "signup"].map(m => (
-                  <button key={m} onClick={() => reset(m)} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: mode === m ? "rgba(99,102,241,0.25)" : "transparent", color: mode === m ? "#a5b4fc" : "#6b7280", fontWeight: mode === m ? 700 : 400, fontSize: "0.82rem", cursor: "pointer", transition: "all 0.15s", textTransform: "capitalize" }}>
+                  <button type="button" key={m} onClick={() => reset(m)} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: mode === m ? "rgba(99,102,241,0.25)" : "transparent", color: mode === m ? "#a5b4fc" : "#6b7280", fontWeight: mode === m ? 700 : 400, fontSize: "0.82rem", cursor: "pointer", transition: "all 0.15s", textTransform: "capitalize" }}>
                     {m === "login" ? "Sign In" : "Create Account"}
                   </button>
                 ))}
@@ -134,7 +139,7 @@ export default function AuthPage({ onAuth }) {
 
               <p style={{ textAlign: "center", marginTop: "1.25rem", fontSize: "0.75rem", color: "#4b5563" }}>
                 {mode === "login" ? "Don't have an account? " : "Already have an account? "}
-                <button onClick={() => reset(mode === "login" ? "signup" : "login")} style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, padding: 0 }}>
+                <button type="button" onClick={() => reset(mode === "login" ? "signup" : "login")} style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, padding: 0 }}>
                   {mode === "login" ? "Sign up" : "Sign in"}
                 </button>
               </p>
@@ -180,7 +185,7 @@ export default function AuthPage({ onAuth }) {
 
               <p style={{ textAlign: "center", marginTop: "1.25rem", fontSize: "0.75rem", color: "#4b5563" }}>
                 Remember it?{" "}
-                <button onClick={() => reset("login")} style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, padding: 0 }}>Sign in</button>
+                <button type="button" onClick={() => reset("login")} style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, padding: 0 }}>Sign in</button>
               </p>
             </>
           )}
@@ -216,7 +221,7 @@ export default function AuthPage({ onAuth }) {
               </form>
 
               <p style={{ textAlign: "center", marginTop: "1.25rem", fontSize: "0.75rem", color: "#4b5563" }}>
-                <button onClick={() => reset("forgot")} style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, padding: 0 }}>← Back</button>
+                <button type="button" onClick={() => reset("forgot")} style={{ background: "none", border: "none", color: "#818cf8", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, padding: 0 }}>← Back</button>
               </p>
             </>
           )}
