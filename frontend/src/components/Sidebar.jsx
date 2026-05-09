@@ -28,6 +28,13 @@ const NAV = [
 export default function Sidebar({ collapsed, onToggle, user, onLogout, mobile = false, open = true, onClose }) {
   const location = useLocation();
   const isCollapsed = mobile ? false : collapsed;
+  const closeOnMobile = () => {
+    if (mobile) onClose?.();
+  };
+  const handleLogout = () => {
+    onLogout();
+    closeOnMobile();
+  };
   return (
     <aside style={{
       position: "fixed", top: 0, left: 0, bottom: 0, zIndex: mobile ? 260 : 200,
@@ -71,7 +78,7 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout, mobile = 
             {group.items.map(item => {
               const active = location.pathname === item.to;
               return (
-                <Link key={item.to} to={item.to} style={{ textDecoration: "none", display: "block" }} onClick={() => mobile && onClose && onClose()}>
+                <Link key={item.to} to={item.to} style={{ textDecoration: "none", display: "block" }} onClick={closeOnMobile}>
                   <div style={{
                     display: "flex", alignItems: "center", gap: "9px",
                     padding: isCollapsed ? "9px 0" : "7px 12px",
@@ -105,7 +112,7 @@ export default function Sidebar({ collapsed, onToggle, user, onLogout, mobile = 
             {!isCollapsed && <span style={{ fontSize: "0.62rem", color: "#374151" }}>Online</span>}
           </div>
           {!isCollapsed && (
-            <button onClick={() => { onLogout(); if (mobile && onClose) onClose(); }} style={{ background: "none", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, color: "#4b5563", cursor: "pointer", fontSize: "0.65rem", padding: "3px 8px" }}>
+            <button onClick={handleLogout} style={{ background: "none", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, color: "#4b5563", cursor: "pointer", fontSize: "0.65rem", padding: "3px 8px" }}>
               Sign out
             </button>
           )}

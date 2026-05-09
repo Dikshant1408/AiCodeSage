@@ -13,15 +13,17 @@ import GithubPage           from "./pages/GithubPage";
 
 import SummaryPage           from "./pages/SummaryPage";
 
+const MOBILE_BREAKPOINT = 900;
+
 export default function App({ user, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 900 : false
+    typeof window !== "undefined" ? window.innerWidth < MOBILE_BREAKPOINT : false
   );
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 900);
+    const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
