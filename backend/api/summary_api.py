@@ -91,11 +91,11 @@ Rules:
     try:
         ai_text = ask_ai(prompt)
         # Deduplicate repeated sections
-        headers = ["WHAT IT IS", "WHAT IT DOES", "HOW IT WORKS", "WHAT IT COULD BECOME"]
+        headers = {"WHAT IT IS", "WHAT IT DOES", "HOW IT WORKS", "CURRENT STATE", "WHAT IT COULD BECOME"}
         seen = set()
         clean = []
         for line in ai_text.splitlines():
-            upper = line.strip().upper().lstrip("*").strip().rstrip(":")
+            upper = line.strip().upper().lstrip("*#").strip().rstrip(":")
             if upper in headers:
                 if upper in seen:
                     break
@@ -103,7 +103,10 @@ Rules:
             clean.append(line)
         ai_text = "\n".join(clean).strip()
     except Exception as e:
-        ai_text = f"A {' + '.join(stack) or 'software'} project with {len(files)} files."
+        # Return the actual error so the frontend can show it
+        error_msg = str(e)
+        # Still return a minimal summary so the page doesn't break
+        ai_text = f"Summary generation failed: {error_msg}\n\nStack detected: {', '.join(stack) or 'unknown'}. Files: {len(files)}."
 
     return {
         "repo_name": repo_name,
