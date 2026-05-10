@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { analyzeRepoZip, analyzeRepoGithub } from "../api";
+import { analyzeRepoZip, analyzeRepoGithub, saveProject } from "../api";
 import NextSteps from "../components/NextSteps";
 import { saveLastAnalysis } from "../lib/lastAnalysis";
 
@@ -26,6 +26,21 @@ export default function RepoIntelligencePage() {
       else {
         setResult(res.data);
         saveLastAnalysis({ tool: "repo", repo_name: res.data.repo_name, score: res.data.avg_quality_score, grade: res.data.avg_grade, files: res.data.total_files, issues: res.data.detailed_issues?.length || 0 });
+        // Auto-save to user project history
+        saveProject({
+          repo_name: res.data.repo_name || "project",
+          source: mode,
+          repo_url: mode === "github" ? githubUrl : "",
+          avg_score: res.data.avg_quality_score || 0,
+          grade: res.data.avg_grade || "C",
+          total_files: res.data.total_files || 0,
+          total_lines: res.data.total_lines || 0,
+          issue_count: res.data.detailed_issues?.length || 0,
+          vuln_count: res.data.cross_file_taint?.length || 0,
+          stack: res.data.project_summary?.stack || [],
+          summary: res.data.project_summary?.ai_summary?.slice(0, 500) || "",
+          report_data: {},
+        }).catch(() => {});  // silent — don't block UI
         setTimeout(() => reportRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       }
     } catch (e) { setError(e.response?.data?.detail || e.message); }

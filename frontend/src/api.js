@@ -60,6 +60,12 @@ export const learningMode      = (code, level = "beginner") => axios.post(`${BAS
 export const benchmarkModels   = (code, task = "review", models = ["deepseek-coder"]) => axios.post(`${BASE}/extras/benchmark`, { code, task, models });
 export const listModels        = () => axios.get(`${BASE}/models`);
 
+// User Project History
+export const listProjects   = ()           => axios.get(`${BASE}/history/`,          { headers: authHeader() });
+export const saveProject    = (data)       => axios.post(`${BASE}/history/save`, data, { headers: authHeader() });
+export const getProject     = (id)         => axios.get(`${BASE}/history/${id}`,      { headers: authHeader() });
+export const deleteProject  = (id)         => axios.delete(`${BASE}/history/${id}`,   { headers: authHeader() });
+
 // Project Summary (standalone)
 export const summarizeZip    = (file) => { const f = new FormData(); f.append("file", file); return axios.post(`${BASE}/summary/zip`, f); };
 export const summarizeGithub = (repo_url) => axios.post(`${BASE}/summary/github`, { repo_url });

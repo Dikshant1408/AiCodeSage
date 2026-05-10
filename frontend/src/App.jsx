@@ -13,6 +13,8 @@ import GithubPage           from "./pages/GithubPage";
 
 import SummaryPage           from "./pages/SummaryPage";
 
+import HistoryPage           from "./pages/HistoryPage";
+
 export default function App({ user, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
   const sideW = collapsed ? 52 : 210;
@@ -27,6 +29,7 @@ export default function App({ user, onLogout }) {
           <Route path="/summary"    element={<SummaryPage />} />
           <Route path="/pipeline"   element={<PipelinePage />} />
           <Route path="/analytics"  element={<AnalyticsPage />} />
+          <Route path="/history"    element={<HistoryPage />} />
           <Route path="/review"     element={<ReviewPage />} />
           <Route path="/security"   element={<SecurityPage />} />
           <Route path="/dependencies" element={<DependencyPage />} />

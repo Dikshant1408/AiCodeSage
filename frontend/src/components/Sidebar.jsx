@@ -7,6 +7,7 @@ const NAV = [
     color: "#6366f1",
     items: [
       { to: "/",         icon: "⬡",  label: "Dashboard"        },
+      { to: "/history",  icon: "📁", label: "My Projects"      },
       { to: "/summary",  icon: "💬", label: "Project Summary"  },
       { to: "/repo",     icon: "📋", label: "Project Report"   },
       { to: "/pipeline", icon: "⚡",  label: "Auto Fix Pipeline"},
