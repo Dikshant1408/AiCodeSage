@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { chatWithCode } from "../api";
 import axios from "axios";
+import NextSteps from "../components/NextSteps";
+import { saveLastAnalysis } from "../lib/lastAnalysis";
 
 const BASE = `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api`;
 
@@ -38,6 +40,7 @@ export default function GithubPage() {
         if (d.error) setError(d.error);
         else {
           setResult(d);
+        saveLastAnalysis({ tool: "github", repo_name: d.repo_name || githubUrl.split("/").pop(), files: d.total_files, score: d.avg_quality_score });
           // Index for chat via the old github endpoint
           try {
             const chatRes = await axios.post(`${BASE}/github/`, { repo_url: url.trim() });
@@ -219,6 +222,7 @@ export default function GithubPage() {
       )}
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {result && <NextSteps context="github" />}
     </div>
   );
 }

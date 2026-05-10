@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { dependencyScan } from "../api";
+import NextSteps from "../components/NextSteps";
 
 const EXAMPLE_REQ = `requests==2.19.0\nflask==1.0.2\nsqlalchemy==1.2.0\nnumpy==1.16.0\npillow==5.4.1\n`;
 const EXAMPLE_PKG = `{\n  "dependencies": {\n    "lodash": "4.17.4",\n    "express": "4.16.0",\n    "axios": "0.18.0"\n  }\n}`;
@@ -113,6 +114,7 @@ export default function DependencyPage() {
                   </div>
                 </div>
               )}
+              <NextSteps context="dependencies" />
             </>
           )}
         </div>

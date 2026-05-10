@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getHistory, saveAnalysis, listRepos } from "../api";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import NextSteps from "../components/NextSteps";
 
 export default function AnalyticsPage() {
   const [repoName, setRepoName] = useState("my-project");
@@ -170,6 +171,7 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
+      <NextSteps context="analytics" />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { summarizeZip, summarizeGithub } from "../api";
+import NextSteps from "../components/NextSteps";
 
 const LANG_COLOR = { python:"#3b82f6", javascript:"#f59e0b", typescript:"#6366f1",
                      java:"#ef4444", css:"#10b981", html:"#f97316", sql:"#8b5cf6",
@@ -148,6 +149,7 @@ export default function SummaryPage() {
         </div>
       )}
 
+      {result && <NextSteps context="summary" />}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );

@@ -2,19 +2,24 @@ import React, { useState } from "react";
 import CodeAnalysisPage from "../components/CodeAnalysisPage";
 import { ResultBlock } from "../components/ResultBlock";
 import QualityScore from "../components/QualityScore";
+import NextSteps from "../components/NextSteps";
 import { reviewCode } from "../api";
+import { saveLastAnalysis } from "../lib/lastAnalysis";
 
 export default function ReviewPage() {
   return (
     <CodeAnalysisPage
       title="Code Review"
-      description="Smart parsing extracts every function and class, then AI reviews each one individually."
+      description="Static analysis + AI review. Every function scored, every bug located."
       icon="◈"
-      onAnalyze={reviewCode}
+      onAnalyze={async (code) => {
+        const res = await reviewCode(code);
+        saveLastAnalysis({ tool: "review", score: res.data.quality?.score, grade: res.data.quality?.grade });
+        return res;
+      }}
       renderResult={(r) => (
         <>
           <QualityScore quality={r.quality} />
-
           {(r.functions_found?.length > 0 || r.classes_found?.length > 0) && (
             <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "1rem", marginBottom: "1rem" }}>
               <div style={{ fontSize: "0.7rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Parsed Structure</div>
@@ -30,19 +35,16 @@ export default function ReviewPage() {
               </div>
             </div>
           )}
-
           {r.function_analyses?.length > 0 && (
             <div style={{ marginBottom: "1rem" }}>
               <div style={{ fontSize: "0.7rem", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.75rem" }}>Per-Function Analysis</div>
-              {r.function_analyses.map((fa) => (
-                <FunctionCard key={fa.name} fa={fa} />
-              ))}
+              {r.function_analyses.map((fa) => (<FunctionCard key={fa.name} fa={fa} />))}
             </div>
           )}
-
           <ResultBlock title="Full AI Review" content={r.ai_review} accent="blue" />
           {r.static_analysis?.pylint && <ResultBlock title="pylint" content={r.static_analysis.pylint} mono accent="green" />}
           {r.static_analysis?.flake8 && <ResultBlock title="flake8" content={r.static_analysis.flake8} mono accent="green" />}
+          <NextSteps context="review" />
         </>
       )}
     />
@@ -53,8 +55,7 @@ function FunctionCard({ fa }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", marginBottom: "0.5rem" }}>
-      <button onClick={() => setOpen(!open)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "transparent", border: "none", cursor: "pointer", color: "white" }}>
+      <button onClick={() => setOpen(!open)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "transparent", border: "none", cursor: "pointer", color: "white" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <span style={{ color: "#93c5fd", fontFamily: "monospace", fontSize: "0.875rem" }}>{fa.name}()</span>
           <span style={{ fontSize: "0.7rem", color: "#4b5563" }}>line {fa.start_line}–{fa.end_line}</span>

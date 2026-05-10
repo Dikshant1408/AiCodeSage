@@ -1,5 +1,7 @@
 import React, { useState, useRef } from "react";
 import { runPipeline } from "../api";
+import NextSteps from "../components/NextSteps";
+import { saveLastAnalysis } from "../lib/lastAnalysis";
 
 const EXAMPLE_FILES = {
   "auth.py": `import os\n\ndef login(username, password):\n    query = "SELECT * FROM users WHERE name = '" + username + "'"\n    secret = "hardcoded_key_123"\n    result = eval(username)\n    return result\n\ndef process(items):\n    for i in range(len(items)):\n        for j in range(len(items)):\n            print(items[i], items[j])\n`,
@@ -50,6 +52,7 @@ export default function PipelinePage() {
     try {
       const res = await runPipeline(files, 5, "all");
       setResult(res.data);
+      saveLastAnalysis({ tool: "pipeline", score_before: res.data.avg_before, score_after: res.data.avg_after, improved: res.data.files_improved });
       setActiveTab("overview");
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (e) {
@@ -134,6 +137,7 @@ export default function PipelinePage() {
         </div>
       </div>
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {result && <NextSteps context="pipeline" />}
     </div>
   );
 }

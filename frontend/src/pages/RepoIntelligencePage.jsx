@@ -1,5 +1,7 @@
 import React, { useState, useRef } from "react";
 import { analyzeRepoZip, analyzeRepoGithub } from "../api";
+import NextSteps from "../components/NextSteps";
+import { saveLastAnalysis } from "../lib/lastAnalysis";
 
 const SEV_COLOR  = { critical:"#ef4444", high:"#f97316", medium:"#f59e0b", low:"#6b7280", info:"#6366f1" };
 const LANG_COLOR = { python:"#3b82f6", javascript:"#f59e0b", typescript:"#6366f1", java:"#ef4444", css:"#10b981", html:"#f97316", sql:"#8b5cf6", jsx:"#f59e0b", tsx:"#6366f1", other:"#6b7280" };
@@ -21,7 +23,11 @@ export default function RepoIntelligencePage() {
         ? await analyzeRepoZip(file)
         : await analyzeRepoGithub(githubUrl);
       if (res.data.error) { setError(res.data.error); }
-      else { setResult(res.data); setTimeout(() => reportRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
+      else {
+        setResult(res.data);
+        saveLastAnalysis({ tool: "repo", repo_name: res.data.repo_name, score: res.data.avg_quality_score, grade: res.data.avg_grade, files: res.data.total_files, issues: res.data.detailed_issues?.length || 0 });
+        setTimeout(() => reportRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      }
     } catch (e) { setError(e.response?.data?.detail || e.message); }
     setLoading(false);
   };
@@ -103,6 +109,7 @@ export default function RepoIntelligencePage() {
           <IssuesSection r={result} />
           <ImprovementsSection r={result} />
           <FilesSection r={result} />
+          <NextSteps context="repo" />
         </div>
       )}
 

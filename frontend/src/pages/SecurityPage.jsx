@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { securityScan, controlFlow } from "../api";
+import NextSteps from "../components/NextSteps";
+import { saveLastAnalysis } from "../lib/lastAnalysis";
 
 const EXAMPLE = `import os
 from flask import request
@@ -47,6 +49,7 @@ export default function SecurityPage() {
       ]);
       setResult(secRes.data);
       setTaint(cfRes.data);
+      saveLastAnalysis({ tool: "security", taint_paths: cfRes.data?.data_flow_issues?.length || 0 });
     } catch (e) {
       setError(e.response?.data?.detail || e.message);
     }
@@ -139,6 +142,7 @@ export default function SecurityPage() {
         </div>
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {result && <NextSteps context="security" />}
     </div>
   );
 }
