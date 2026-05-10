@@ -56,33 +56,37 @@ def _build_summary(files: dict, repo_name: str) -> dict:
 
     key_content = "\n\n".join(f"=== {fn} ===\n{code}" for fn, code in key_files[:3])
 
-    prompt = f"""Look at this project called "{repo_name}" and explain it in plain developer language.
+    prompt = f"""You are explaining the project "{repo_name}" to someone who wants to fully understand it.
 
-Files:
+Files in this project:
 {file_list}
 
 Key code:
 {key_content}
 
-Write exactly 4 short paragraphs with these labels on their own line:
+Write a clear, easy-to-understand explanation using exactly these section headers on their own line:
 
 WHAT IT IS:
-One sentence. What type of app is this and what problem does it solve? Be specific — not "a web application" but "a portfolio site with an AI chat assistant that answers questions about the developer".
+Write 2-3 sentences. Explain what this project is like you're telling a friend. What kind of app is it? What real-world problem does it solve? Be specific — mention the actual purpose, not generic terms like "web application".
 
 WHAT IT DOES:
-2-3 sentences. What can a user actually do with it? What happens when they open it?
+Write 3-4 sentences. Walk through what a user actually experiences. What do they see when they open it? What can they do? What happens step by step? Make it feel real and concrete.
 
 HOW IT WORKS:
-2 sentences. How does the code actually work? What talks to what? Keep it technical but simple.
+Write 3-4 sentences. Explain the technical side in simple terms. What are the main parts? How do they connect? For example: "The frontend is built with React and sends requests to a Python backend. The backend stores data in a database and uses an AI model to generate responses." Use the actual technologies you can see in the code.
+
+CURRENT STATE:
+Write 2-3 sentences. Be honest about where this project stands. Is it a prototype, a working MVP, or production-ready? What is clearly missing — authentication, tests, error handling, deployment setup? What would need to happen before real users could rely on it?
 
 WHAT IT COULD BECOME:
-2-3 sentences. What is the most obvious next step to make this genuinely useful or production-ready?
+Write 3-4 sentences. Paint a picture of what this project could grow into. What features would make it genuinely useful? What would make it stand out? Think about the most impactful improvements, not just technical fixes.
 
 Rules:
-- No bullet points. No markdown. No bold text. Just plain paragraphs.
-- Sound like a developer talking to another developer.
-- Be specific to THIS project. Use actual file names you can see.
-- Max 150 words total."""
+- Write in flowing paragraphs. No bullet points. No markdown symbols like ** or ##.
+- Use simple, clear language. Avoid jargon. If you must use a technical term, explain it briefly.
+- Be specific to THIS project. Reference actual file names, technologies, and features you can see.
+- Each section should feel complete and informative on its own.
+- Total length: 200-300 words."""
 
     try:
         ai_text = ask_ai(prompt)

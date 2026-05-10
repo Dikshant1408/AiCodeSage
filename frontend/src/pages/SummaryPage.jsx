@@ -4,32 +4,41 @@ import NextSteps from "../components/NextSteps";
 
 const LANG_COLOR = { python:"#3b82f6", javascript:"#f59e0b", typescript:"#6366f1",
                      java:"#ef4444", css:"#10b981", html:"#f97316", sql:"#8b5cf6",
-                     jsx:"#f59e0b", tsx:"#6366f1", md:"#9ca3af", json:"#6b7280" };
+                     jsx:"#f59e0b", tsx:"#6366f1", react:"#61dafb", fastapi:"#009688",
+                     nextjs:"#ffffff", flask:"#9ca3af", django:"#10b981" };
+
+const ALL_HEADERS = ["WHAT IT IS", "WHAT IT DOES", "HOW IT WORKS", "CURRENT STATE", "WHAT IT COULD BECOME"];
 
 function parseSection(text, key) {
   if (!text) return "";
   const lines = text.split("\n");
   let capturing = false;
   const result = [];
-  const allHeaders = ["WHAT IT IS", "WHAT IT DOES", "HOW IT WORKS", "WHAT IT COULD BECOME"];
-  const headerPat = new RegExp(`^[\\*\\s]*(${allHeaders.join("|")})[\\*\\s]*:?\\s*$`, "i");
-  const thisPat   = new RegExp(`^[\\*\\s]*${key}[\\*\\s]*:?\\s*$`, "i");
-
+  const headerPat = new RegExp(`^[\\*#\\s]*(${ALL_HEADERS.join("|")})[\\*#\\s]*:?\\s*$`, "i");
+  const thisPat   = new RegExp(`^[\\*#\\s]*${key.replace(/[()]/g, "\\$&")}[\\*#\\s]*:?\\s*$`, "i");
   for (const line of lines) {
     if (thisPat.test(line.trim()))  { capturing = true; continue; }
     if (headerPat.test(line.trim()) && capturing) break;
     if (capturing) result.push(line);
   }
-  return result.join("\n").replace(/\*\*/g, "").trim();
+  return result.join("\n").replace(/\*\*/g, "").replace(/##/g, "").trim();
 }
 
+const SECTIONS = [
+  { key: "WHAT IT IS",          label: "What it is",          color: "#6366f1", size: "1.05rem", weight: 600, textColor: "#e5e7eb", bg: null },
+  { key: "WHAT IT DOES",        label: "What it does",        color: "#3b82f6", size: "0.92rem", weight: 400, textColor: "#c7d2fe", bg: null },
+  { key: "HOW IT WORKS",        label: "How it works",        color: "#8b5cf6", size: "0.92rem", weight: 400, textColor: "#d1d5db", bg: null },
+  { key: "CURRENT STATE",       label: "Current state",       color: "#f59e0b", size: "0.92rem", weight: 400, textColor: "#fcd34d", bg: "rgba(245,158,11,0.06)", border: "rgba(245,158,11,0.2)" },
+  { key: "WHAT IT COULD BECOME",label: "What it could become",color: "#10b981", size: "0.92rem", weight: 400, textColor: "#6ee7b7", bg: "rgba(16,185,129,0.06)", border: "rgba(16,185,129,0.2)" },
+];
+
 export default function SummaryPage() {
-  const [mode, setMode]       = useState("zip");
-  const [file, setFile]       = useState(null);
+  const [mode, setMode]           = useState("zip");
+  const [file, setFile]           = useState(null);
   const [githubUrl, setGithubUrl] = useState("");
-  const [result, setResult]   = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
+  const [result, setResult]       = useState(null);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState(null);
 
   const run = async () => {
     setLoading(true); setError(null); setResult(null);
@@ -44,21 +53,19 @@ export default function SummaryPage() {
   };
 
   const summary = result?.summary || "";
-  const whatItIs    = parseSection(summary, "WHAT IT IS");
-  const whatItDoes  = parseSection(summary, "WHAT IT DOES");
-  const howItWorks  = parseSection(summary, "HOW IT WORKS");
-  const whatItCould = parseSection(summary, "WHAT IT COULD BECOME");
-  const showRaw     = !whatItIs && !whatItDoes && summary.length > 10;
+  const parsed  = SECTIONS.map(s => ({ ...s, text: parseSection(summary, s.key) }));
+  const hasAny  = parsed.some(s => s.text);
+  const showRaw = !hasAny && summary.length > 10;
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "2.5rem 2rem" }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: "2.5rem 2rem" }}>
       {/* Header */}
       <div style={{ marginBottom: "2rem" }}>
         <h1 style={{ margin: "0 0 0.5rem", fontSize: "1.8rem", fontWeight: 800, background: "linear-gradient(135deg,#60a5fa,#a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
           Project Summary
         </h1>
         <p style={{ margin: 0, color: "#6b7280", fontSize: "0.85rem" }}>
-          Upload a ZIP or paste a GitHub URL — get a plain English explanation of what the project is, what it does, how it works, and what it could become.
+          Upload a ZIP or paste a GitHub URL — get a full plain-English explanation of what the project is, what it does, how it works, its current state, and what it could become.
         </p>
       </div>
 
@@ -99,51 +106,55 @@ export default function SummaryPage() {
       {loading && (
         <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280" }}>
           <div style={{ width: 40, height: 40, border: "3px solid rgba(99,102,241,0.2)", borderTop: "3px solid #6366f1", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 1rem" }} />
-          <p style={{ fontSize: "0.85rem" }}>Reading your project...</p>
+          <p style={{ fontSize: "0.85rem" }}>Reading your project and writing the summary...</p>
         </div>
       )}
 
       {/* Result */}
       {result && (
         <div>
-          {/* Project name + stack */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 800, color: "#e5e7eb" }}>{result.repo_name}</h2>
-            <span style={{ fontSize: "0.72rem", color: "#6b7280" }}>{result.file_count} files · {result.total_lines?.toLocaleString()} lines</span>
-            {result.stack?.map(tech => (
-              <span key={tech} style={{ fontSize: "0.72rem", padding: "2px 9px", borderRadius: 5, background: `${LANG_COLOR[tech.toLowerCase()] || "#6b7280"}18`, color: LANG_COLOR[tech.toLowerCase()] || "#9ca3af", border: `1px solid ${LANG_COLOR[tech.toLowerCase()] || "#6b7280"}33` }}>{tech}</span>
-            ))}
+          {/* Project name + meta */}
+          <div style={{ marginBottom: "2rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 800, color: "#e5e7eb" }}>{result.repo_name}</h2>
+              <span style={{ fontSize: "0.72rem", color: "#4b5563" }}>{result.file_count} files · {result.total_lines?.toLocaleString()} lines of code</span>
+            </div>
+            {result.stack?.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                {result.stack.map(tech => (
+                  <span key={tech} style={{ fontSize: "0.75rem", padding: "3px 10px", borderRadius: 6, background: `${LANG_COLOR[tech.toLowerCase()] || "#6b7280"}18`, color: LANG_COLOR[tech.toLowerCase()] || "#9ca3af", border: `1px solid ${LANG_COLOR[tech.toLowerCase()] || "#6b7280"}33` }}>{tech}</span>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Summary sections */}
+          {/* Sections */}
           {showRaw ? (
-            <p style={{ fontSize: "0.9rem", color: "#d1d5db", lineHeight: 1.7 }}>{summary.replace(/\*\*/g, "")}</p>
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "1.5rem" }}>
+              <p style={{ margin: 0, fontSize: "0.92rem", color: "#d1d5db", lineHeight: 1.8 }}>{summary.replace(/\*\*/g, "").replace(/##/g, "")}</p>
+            </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-              {whatItIs && (
-                <div>
-                  <div style={{ fontSize: "0.6rem", color: "#6366f1", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "0.4rem" }}>What it is</div>
-                  <p style={{ margin: 0, fontSize: "1.05rem", color: "#e5e7eb", fontWeight: 500, lineHeight: 1.5 }}>{whatItIs}</p>
-                </div>
-              )}
-              {whatItDoes && (
-                <div>
-                  <div style={{ fontSize: "0.6rem", color: "#3b82f6", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "0.4rem" }}>What it does</div>
-                  <p style={{ margin: 0, fontSize: "0.92rem", color: "#9ca3af", lineHeight: 1.7 }}>{whatItDoes}</p>
-                </div>
-              )}
-              {howItWorks && (
-                <div>
-                  <div style={{ fontSize: "0.6rem", color: "#8b5cf6", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "0.4rem" }}>How it works</div>
-                  <p style={{ margin: 0, fontSize: "0.92rem", color: "#9ca3af", lineHeight: 1.7 }}>{howItWorks}</p>
-                </div>
-              )}
-              {whatItCould && (
-                <div style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 12, padding: "1.1rem 1.25rem" }}>
-                  <div style={{ fontSize: "0.6rem", color: "#10b981", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: "0.4rem" }}>What it could become</div>
-                  <p style={{ margin: 0, fontSize: "0.92rem", color: "#6ee7b7", lineHeight: 1.7 }}>{whatItCould}</p>
-                </div>
-              )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+              {parsed.map((s, i) => {
+                if (!s.text) return null;
+                const isHighlighted = !!s.bg;
+                return (
+                  <div key={s.key} style={{
+                    padding: "1.5rem",
+                    background: s.bg || (i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent"),
+                    border: isHighlighted ? `1px solid ${s.border}` : "none",
+                    borderTop: i > 0 && !isHighlighted ? "1px solid rgba(255,255,255,0.05)" : (isHighlighted ? `1px solid ${s.border}` : "none"),
+                    borderRadius: isHighlighted ? 14 : 0,
+                    marginTop: isHighlighted ? "0.75rem" : 0,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                      <div style={{ width: 3, height: 18, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+                      <span style={{ fontSize: "0.65rem", color: s.color, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700 }}>{s.label}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: s.size, fontWeight: s.weight, color: s.textColor, lineHeight: 1.8 }}>{s.text}</p>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
