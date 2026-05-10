@@ -30,6 +30,18 @@ app.include_router(review.router,       prefix="/api/review",    tags=["Review"]
 app.include_router(analyze.router,      prefix="/api/analyze",   tags=["Analyze"])    # ZIP upload, RAG chat
 app.include_router(github.router,       prefix="/api/github",    tags=["GitHub"])     # repo clone + RAG
 
+@app.on_event("startup")
+async def startup():
+    """Pre-warm auth module so first login is instant."""
+    import threading
+    def warm():
+        try:
+            from api.auth import _hash_pw
+            _hash_pw("warmup")  # trigger module init
+        except Exception:
+            pass
+    threading.Thread(target=warm, daemon=True).start()
+
 @app.get("/")
 def root():
     return {"message": "AiCodeSage v5.0 — Multi-Agent Code Intelligence Platform"}

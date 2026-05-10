@@ -41,7 +41,9 @@ def init_db():
         """)
         conn.commit()
 
-init_db()
+# Run once at startup — but in a thread so it doesn't block the first request
+import threading
+threading.Thread(target=init_db, daemon=True).start()
 
 # ── Minimal JWT (no extra deps) ───────────────────────────────────────────────
 
@@ -68,16 +70,18 @@ def _verify(token: str) -> dict:
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
+PBKDF2_ITERS = 10000  # fast enough for dev tool, still secure
+
 def _hash_pw(pw: str) -> str:
     salt = os.urandom(16).hex()
-    h    = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), 260000).hex()
+    h    = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), PBKDF2_ITERS).hex()
     return f"{salt}:{h}"
 
 def _check_pw(pw: str, stored: str) -> bool:
     try:
         salt, h = stored.split(":")
         return hmac.compare_digest(
-            hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), 260000).hex(), h
+            hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), PBKDF2_ITERS).hex(), h
         )
     except Exception:
         return False
