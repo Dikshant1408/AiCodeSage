@@ -85,4 +85,4 @@ export const runPipeline = (files, max_files = 5, severity_filter = "all") =>
 
 // Google Search
 export const googleSearch = (query, num_results = 5) =>
-  axios.post(`${BASE}/google-search/`, { query, num_results });
+  axios.post(`${BASE}/google-search`, { query, num_results });

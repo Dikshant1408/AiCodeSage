@@ -3,20 +3,20 @@ import { googleSearch } from "../api";
 
 export default function GoogleSearchPage() {
   const [query, setQuery] = useState("");
-  const [count, setCount] = useState(5);
+  const [numResults, setNumResults] = useState(5);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [results, setResults] = useState([]);
   const [totalResults, setTotalResults] = useState("0");
 
-  const runSearch = async () => {
+  const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setError(null);
     setResults([]);
     setTotalResults("0");
     try {
-      const res = await googleSearch(query.trim(), count);
+      const res = await googleSearch(query.trim(), numResults);
       setResults(res.data?.results || []);
       setTotalResults(res.data?.total_results || "0");
     } catch (e) {
@@ -40,19 +40,19 @@ export default function GoogleSearchPage() {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && runSearch()}
+            onKeyDown={e => e.key === "Enter" && handleSearch()}
             placeholder="Search Google..."
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "#e5e7eb", fontSize: "0.875rem", outline: "none" }}
           />
           <select
-            value={count}
-            onChange={e => setCount(Number(e.target.value))}
+            value={numResults}
+            onChange={e => setNumResults(Number(e.target.value))}
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px", color: "#e5e7eb", fontSize: "0.82rem", outline: "none" }}
           >
             {[3, 5, 7, 10].map(n => <option key={n} value={n} style={{ background: "#111827" }}>{n} results</option>)}
           </select>
           <button
-            onClick={runSearch}
+            onClick={handleSearch}
             disabled={loading || !query.trim()}
             style={{ padding: "10px 20px", background: loading || !query.trim() ? "rgba(37,99,235,0.2)" : "linear-gradient(135deg,#2563eb,#7c3aed)", border: "none", borderRadius: 10, color: loading || !query.trim() ? "#6b7280" : "white", fontWeight: 600, fontSize: "0.85rem", cursor: loading || !query.trim() ? "not-allowed" : "pointer" }}
           >

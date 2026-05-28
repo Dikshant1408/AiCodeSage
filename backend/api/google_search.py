@@ -27,7 +27,7 @@ def _extract_items(items: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]
     ]
 
 
-@router.post("/")
+@router.post("")
 def google_search(req: GoogleSearchRequest):
     api_key = os.getenv("GOOGLE_SEARCH_API_KEY", "").strip()
     search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID", "").strip()
