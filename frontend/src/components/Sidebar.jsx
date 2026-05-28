@@ -22,6 +22,7 @@ const NAV = [
       { to: "/security",     icon: "⬢",  label: "Security Scan"  },
       { to: "/dependencies", icon: "🔒", label: "CVE Scanner"    },
       { to: "/github",       icon: "🐙", label: "GitHub Chat"    },
+      { to: "/google-search", icon: "🔎", label: "Google Search" },
     ],
   },
 ];
