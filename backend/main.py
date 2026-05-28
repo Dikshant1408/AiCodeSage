@@ -4,7 +4,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import review, analyze, security, github, advanced, analytics, polyglot, extras, pipeline_api, auth, report_api, repo_api, summary_api, history_api
+from api import review, analyze, security, github, advanced, analytics, polyglot, extras, pipeline_api, auth, report_api, repo_api, summary_api, history_api, google_search
 
 app = FastAPI(title="AiCodeSage", version="5.0.0")
 
@@ -20,6 +20,7 @@ app.include_router(auth.router,         prefix="/api/auth",      tags=["Auth"])
 app.include_router(history_api.router,  prefix="/api/history",   tags=["History"])     # per-user project history
 app.include_router(summary_api.router,  prefix="/api/summary",   tags=["Summary"])     # standalone project summary
 app.include_router(repo_api.router,     prefix="/api/repo",      tags=["Repo"])        # repository-level intelligence
+app.include_router(google_search.router, prefix="/api/google-search", tags=["Google Search"])  # Google programmable search
 app.include_router(pipeline_api.router, prefix="/api/pipeline",  tags=["Pipeline"])   # 4-agent autonomous loop
 app.include_router(report_api.router,   prefix="/api/report",    tags=["Report"])     # full intelligence report
 app.include_router(advanced.router,     prefix="/api/advanced",  tags=["Advanced"])   # AST control flow, taint, duplicates, graph

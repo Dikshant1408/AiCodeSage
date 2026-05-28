@@ -82,3 +82,7 @@ export const generateReport = (files, repo_name = "project", include_ai_summary 
 // Pipeline
 export const runPipeline = (files, max_files = 5, severity_filter = "all") =>
   axios.post(`${BASE}/pipeline/run`, { files, max_files, severity_filter });
+
+// Google Search
+export const googleSearch = (query, num_results = 5) =>
+  axios.post(`${BASE}/google-search/`, { query, num_results });

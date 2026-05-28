@@ -79,6 +79,7 @@ Backend (FastAPI)
 | Feature | Description | AI? |
 |---|---|---|
 | **CVE Scanner** | Queries OSV API for real CVEs in requirements.txt / package.json | No |
+| **Google Search Integration** | Uses Google Programmable Search API from app UI | No |
 | **Repo RAG Chat** | Clone repo → ChromaDB embeddings → grounded answers | Yes |
 | **Code Review** | Static analysis + single AI call | Yes |
 | **Export Report** | Full intelligence report — static + taint + graph + AI summary | Yes |
@@ -191,6 +192,8 @@ Create `.env`:
 ```
 GROQ_API_KEY=your_key_here
 JWT_SECRET=change-this-in-production
+GOOGLE_SEARCH_API_KEY=your_google_api_key
+GOOGLE_SEARCH_ENGINE_ID=your_programmable_search_engine_id
 ```
 
 ```bash
@@ -223,6 +226,7 @@ Open http://localhost:3001
 | Review | `/api/review` | POST / |
 | Analyze | `/api/analyze` | POST /upload, /bugs, /chat |
 | GitHub | `/api/github` | POST / |
+| Google Search | `/api/google-search` | POST / |
 | Report | `/api/report` | POST /generate |
 
 ---
@@ -272,7 +276,7 @@ score = clamp(score, 0, 10)
 **Backend → Render**
 - Build: `pip install -r requirements.txt`
 - Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-- Env vars: `GROQ_API_KEY`, `JWT_SECRET`
+- Env vars: `GROQ_API_KEY`, `JWT_SECRET`, `GOOGLE_SEARCH_API_KEY`, `GOOGLE_SEARCH_ENGINE_ID`
 
 **Frontend → Vercel**
 - Root: `ai-code-assistant/frontend`

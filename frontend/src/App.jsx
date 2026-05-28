@@ -10,6 +10,7 @@ import ReviewPage           from "./pages/ReviewPage";
 import SecurityPage         from "./pages/SecurityPage";
 import DependencyPage       from "./pages/DependencyPage";
 import GithubPage           from "./pages/GithubPage";
+import GoogleSearchPage     from "./pages/GoogleSearchPage";
 
 import SummaryPage           from "./pages/SummaryPage";
 
@@ -34,6 +35,7 @@ export default function App({ user, onLogout }) {
           <Route path="/security"   element={<SecurityPage />} />
           <Route path="/dependencies" element={<DependencyPage />} />
           <Route path="/github"     element={<GithubPage />} />
+          <Route path="/google-search" element={<GoogleSearchPage />} />
         </Routes>
       </main>
     </div>

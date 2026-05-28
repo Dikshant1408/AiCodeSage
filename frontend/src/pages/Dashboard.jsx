@@ -11,6 +11,7 @@ const TOOLS = [
   { to: "/dependencies", icon: "🔒", title: "CVE Scanner",       desc: "Paste requirements.txt or package.json. Checks every dependency against the live OSV vulnerability database.", color: "#dc2626", cta: "Check deps →" },
   { to: "/review",       icon: "◈",  title: "Code Review",       desc: "Paste any code snippet. Quality score, bug list from static analysis, per-function review.", color: "#3b82f6", cta: "Review code →" },
   { to: "/github",       icon: "🐙", title: "GitHub Chat",       desc: "Paste a public GitHub URL. Repo gets cloned, indexed, and you can ask questions about the codebase.", color: "#6b7280", cta: "Chat with repo →" },
+  { to: "/google-search",icon: "🔎", title: "Google Search",     desc: "Run Google searches from inside the app using your Programmable Search Engine API credentials.", color: "#2563eb", cta: "Search web →" },
   { to: "/analytics",    icon: "📈", title: "Quality History",   desc: "Every analysis saves a quality score. See if your codebase is improving or getting worse over time.", color: "#0ea5e9", cta: "View history →" },
 ];
 
